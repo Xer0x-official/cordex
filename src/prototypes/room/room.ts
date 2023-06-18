@@ -4,7 +4,7 @@
 
 export {};
 
-const roomBlueprints = require('../../room/blueprints');
+import * as roomBlueprints from '../../room/blueprints';
 const roomDimensions: number = 50;
 
 Room.prototype.getMySpawns = function () {

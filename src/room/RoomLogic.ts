@@ -10,17 +10,16 @@ export class RoomLogic implements IRoomLogic, IBaseRoomClass {
 		this.room = room;
 		this.name = name;
 		this.memory = _.cloneDeep(this.room.memory);
+		this.ticks = Game.time;
 
+		this.updateRoleCount();
 		this._run();
 		this._updateMemory();
 	}
 
 	_run() {
-		this.ticks = Game.time;
-		//this.getMemory(this.room, this.memory);
-
 		if (Object.keys(Memory.colonies).length == 0) {
-			//this.room.setupRoom();
+			this.room.setupRoom(false, this.name);
 			return;
 		}
 
@@ -29,7 +28,6 @@ export class RoomLogic implements IRoomLogic, IBaseRoomClass {
 			new HandleSpawn(this.room, this.name);
 		}
 
-		/*
 		if (this.ticks % 50 === 0) {
 			this.fillRepairQueue();
 		}
@@ -37,7 +35,7 @@ export class RoomLogic implements IRoomLogic, IBaseRoomClass {
 		if (this.ticks % 100 === 0) {
 			this.getMyStructurs();
 			//new RoomBuilder(this.room, this.memory);
-		} */
+		}
 
 		this._updateMemory();
 	}
@@ -46,48 +44,47 @@ export class RoomLogic implements IRoomLogic, IBaseRoomClass {
 		this.room.memory = this.memory;
 	}
 
-	/* getMemory(room, memory) {
-		this.room = room;
-		this.name = this.room.name;
-		this.memory = this.room.memory;
-		this.fullMemory = memory;
-		this.updateRoleCount();
-	} */
-
-	/* updateRoleCount() {
-		let statistics = {
+	// TODO Funktion aus dem Room Object rausnehmen in ein eigenes Object
+	updateRoleCount() {
+		let roles: IColonieStatsRoles = {
 			miner: 0,
 			transporter: 0,
 			worker: 0,
-			creepCount: 0,
-			totalAvailableEnergy: this.getTotalAvailableEnergy(),
-			sourceCount: this.memory.statistics.sourceCount,
+			scouter: 0,
 		}
-
-		//const creeps = Object.values(this.fullMemory.creeps);
+		let stats: IColonieStats = {
+			resourceCount: 0,
+			creepsCount: 0,
+			roles: roles,
+			totalAvailableEnergy: this.getTotalAvailableEnergy(),
+		}
 
 		for (const key in Game.creeps) {
 			if (!Game.creeps[key] || Game.creeps[key] === null) {
 				delete Game.creeps[key];
 				delete Memory.creeps[key];
-			} else {
-				statistics.creepCount++;
-				switch (Game.creeps[key].memory.job) {
-					case "miner":
-						statistics.miner++;
-						break;
-					case "transporter":
-						statistics.transporter++;
-						break;
-					case "worker":
-						statistics.worker++;
-						break;
-				}
+				continue;
+			}
+
+			stats.creepsCount++;
+			switch (Game.creeps[key].memory.job) {
+				case "miner":
+					stats.roles.miner++;
+					break;
+				case "transporter":
+					stats.roles.transporter++;
+					break;
+				case "worker":
+					stats.roles.worker++;
+					break;
+				case "scout":
+					stats.roles.scouter++;
+					break;
 			}
 		}
 
-		this.memory.statistics = statistics;
-	} */
+		this.room.stats = stats;
+	}
 
 	getTotalAvailableEnergy() {
 		let energy = 0;
@@ -98,7 +95,7 @@ export class RoomLogic implements IRoomLogic, IBaseRoomClass {
 			storage: StructureStorage[],
 			link: StructureLink[],
 			terminal: StructureTerminal[],
-		  } = {
+		} = {
 			'dropped': this.room.find(FIND_DROPPED_RESOURCES, {
 				filter: resource => resource.resourceType === RESOURCE_ENERGY
 			}),
@@ -139,31 +136,38 @@ export class RoomLogic implements IRoomLogic, IBaseRoomClass {
 		return Math.max(0, energy);
 	}
 
-	/* getMyStructurs() {
-		this.myStructurs = [];
-
-		_.forEach(this.room.find(FIND_STRUCTURES), structure => {
-			this.myStructurs.push(structure.id);
+	getMyStructurs() {
+		_.forEach(this.room.find(FIND_STRUCTURES), (structure: Structure) => {
+			this.room.colonieMemory.myStructurs.push(structure.id);
 		});
-	} */
+	}
 
-	/* fillRepairQueue() {
+	fillRepairQueue() {
 		let i = 0;
-		let repairQueue = [];
+		let repairQueue: colonieQueueElement[] = [];
 
 		for (i = 0; i < this.room.colonieMemory.myStructurs.length; i++) {
-			const structure: Structure | null = Game.getObjectById(this.room.colonieMemory.myStructurs[i]);
+			const structure: Structure | null = Game.getObjectById(this.room.colonieMemory.myStructurs[i] as Id<Structure>);
 			if (!structure || structure === null) {
 				continue;
 			}
 
 			if ((structure.hits < structure.hitsMax && structure.structureType !== STRUCTURE_WALL && structure.structureType !== STRUCTURE_RAMPART) ||
 				(structure.hits < 15000 && (structure.structureType === STRUCTURE_RAMPART || structure.structureType === STRUCTURE_WALL))) {
-					repairQueue.push(this.memory.myStructurs[i]);
+				repairQueue.push({
+					name: `repair_${this.name}_${this.ticks + i}`,
+					id: this.room.colonieMemory.myStructurs[i],
+				});
 			}
 		}
 
-		this.memory.repairQueue = repairQueue.sort((a,b) => a.hits - b.hits);
-	} */
+		this.room.repairQueue = repairQueue.sort((a, b) => {
+			let structureA = Game.getObjectById(a.id as Id<Structure>);
+			let structureB = Game.getObjectById(b.id as Id<Structure>);
+			if (!structureA) { return -1; }
+			else if (!structureB) { return 1; }
+			return structureA.hits - structureB.hits
+		});
+	}
 
 }

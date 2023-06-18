@@ -95,8 +95,8 @@ Object.defineProperty(Room.prototype, 'stats', {
 	get: function (): IColonieStats {
 		return Memory.colonies[this.memory.origin].stats;
 	},
-	set: function (value) {
-		return null;
+	set: function (value: IColonieStats) {
+		return Memory.colonies[this.memory.origin].stats = value;
 	},
 	enumerable: true,
 	configurable: true

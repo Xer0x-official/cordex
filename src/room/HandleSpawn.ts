@@ -16,7 +16,6 @@ export class HandleSpawn {
 		this.room = room;
 		this.name = name;
 		this.memory = this.room.memory;
-		console.log(this.room.spawns);
 		this.spawn = Game.getObjectById(this.room.spawns[0]) as StructureSpawn;
 		this.spawnQueue = _.cloneDeep(this.room.spawnQueue);
 		this.buildQueue = _.cloneDeep(this.room.buildQueue);
@@ -36,8 +35,8 @@ export class HandleSpawn {
 	}
 
 	_updateMemory(): void {
-		this.room.colonieMemory.queues.spawn = this.spawnQueue;
-		this.room.spawnQueue = this.buildQueue;
+		this.room.buildQueue = this.buildQueue;
+		this.room.spawnQueue = this.spawnQueue;
 		this.room.stats = this.stats;
 	}
 

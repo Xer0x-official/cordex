@@ -4,12 +4,7 @@ import clear from 'rollup-plugin-clear';
 import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import typescript from 'rollup-plugin-typescript2';
-// import typescript from '@rollup/plugin-typescript';
 import screeps from 'rollup-plugin-screeps';
-import glob from 'glob';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { type } from 'node:os';
 
 let cfg;
 const dest = process.env.DEST;
