@@ -1,7 +1,7 @@
 
 type buildBlueprintBuildElement = {
 	pos: RoomPosition;
-	type: StructureConstant | undefined;
+	type: BuildableStructureConstant | undefined;
 }
 
 type buildBlueprint = {
@@ -13,7 +13,7 @@ type buildBlueprint = {
 
 type bluePrintMatrixElement = {
 	rcl: number,
-	type: StructureConstant,
+	type: BuildableStructureConstant,
 }
 
 type colonieQueueElement = {

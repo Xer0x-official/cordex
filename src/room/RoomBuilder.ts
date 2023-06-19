@@ -1,19 +1,27 @@
 const utils = require('../utils');
 
 export class RoomBuilder implements IBaseRoomClass {
-	constructor(room, memory) {
+
+room: Room;
+	name: string
+	memory: RoomMemory;
+	rcl: number;
+	spawn: StructureSpawn;
+	controllerUpgradeThreshhold: number;
+	//CONTROLLER_LEVELS
+
+
+	constructor(room: Room, name: string, memory: RoomMemory) {
 		this.room = room;
 		this.memory = memory;
-		this.roomControllerUpgradeCost = [200, 45000, 135000, 405000, 1215000, 3645000, 10935000];
-		this.rcl = this.room.controller.level;
+		this.rcl = this.room.controller?.level as number;
+		this.spawn = Game.getObjectById(this.room.spawns[0]) as StructureSpawn;
+		this.controllerUpgradeThreshhold = CONTROLLER_LEVELS[this.rcl] * (0.1 - (this.rcl / 100));
 
-		this.build();
+		this._run();
 	}
 
-	build() {
-		const controllerUpgradeThreshhold = this.roomControllerUpgradeCost[this.rcl - 1] * (0.1 - (this.rcl / 100));
-		const spawn = Game.getObjectById(this.memory.spawn);
-
+	_run() {
 		switch (this.rcl) {
 			case 8:
 				break;
@@ -30,19 +38,23 @@ export class RoomBuilder implements IBaseRoomClass {
 			case 3:
 				this.buildStructure('tower');
 			case 2:
-				this.buildStructure('bunker', { x: spawn.pos.x - 3, y: spawn.pos.y - 1 });
+				this.buildStructure('bunker', this.spawn.pos);
 			default:
 				this.buildPaths();
-				this.buildController(controllerUpgradeThreshhold);
+				this.buildController();
 				break;
 		}
 
 		this.checkBuildProgress();
 	}
 
-	buildStructure(name, positionInit = undefined) {
+	_updateMemory() {
+
+	}
+
+	buildStructure(name: string, positionInit: RoomPosition | undefined = undefined): void {
 		if (!this.isBuildAlreadyInQueue(name)) {
-			const baseExtensions = this.room.getBaseExtensions();
+			const baseExtensions = this.room.baseExtensions;
 			let extension = undefined;
 			let constructionErr = 0;
 			let structuresToDelete = [];
@@ -56,7 +68,7 @@ export class RoomBuilder implements IBaseRoomClass {
 				extension = baseExtensions[name];
 			}
 
-			const position = positionInit || { x: extension.x - 2, y: extension.y - 2 };
+			const position = positionInit || new RoomPosition(extension.x - 2, extension.y - 2, this.room.name);
 			const project = this.room.buildBlueprint(position, name);
 
 			if (project.structures.length > 0 && project.cost > 0) {
@@ -78,7 +90,7 @@ export class RoomBuilder implements IBaseRoomClass {
 					});
 
 
-					constructionErr = this.room.createConstructionSite(project.structures[i].pos.x, project.structures[i].pos.y, project.structures[i].type);
+					constructionErr = this.room.createConstructionSite(project.structures[i].pos.x, project.structures[i].pos.y, project.structures[i].type as BuildableStructureConstant);
 
 					/* if (constructionErr !== OK) {
 						project.structures.splice(i, 1);
@@ -86,56 +98,57 @@ export class RoomBuilder implements IBaseRoomClass {
 				}
 
 				if (project.structures.length > 0) {
-					this.memory.buildQueue.push(project);
+					this.room.buildQueue.push(project);
 
 				}
 			}
 		}
 	}
 
-	buildController(controllerUpgradeThreshhold) {
-		if (!this.isBuildAlreadyInQueue('controller') && (this.room.controller.ticksToDowngrade < 500 || this.room.getStatistics().totalAvailableEnergy > controllerUpgradeThreshhold)) {
-			let controllerUpgradeCost = (Math.floor(this.room.getStatistics().totalAvailableEnergy / controllerUpgradeThreshhold) * controllerUpgradeThreshhold) * 0.75;
-			controllerUpgradeCost = controllerUpgradeCost > (this.roomControllerUpgradeCost[this.rcl - 1] * 0.25) ? (this.roomControllerUpgradeCost[this.rcl - 1] * 0.25) : controllerUpgradeCost;
+	buildController() {
+		if (!this.isBuildAlreadyInQueue('controller') && (this.room.controller && this.room.controller.ticksToDowngrade < 500 || this.room.stats.totalAvailableEnergy > this.controllerUpgradeThreshhold)) {
+			let controllerUpgradeCost = (Math.floor(this.room.stats.totalAvailableEnergy / this.controllerUpgradeThreshhold) * this.controllerUpgradeThreshhold) * 0.75;
+			controllerUpgradeCost = controllerUpgradeCost > (CONTROLLER_LEVELS[this.rcl] * 0.25) ? (CONTROLLER_LEVELS[this.rcl] * 0.25) : controllerUpgradeCost;
 			console.log(`ROOM: Tried to add buildingProject controller_${Game.time} with ${controllerUpgradeCost} costs`);
-			this.memory.buildQueue.push({ name: `controller_${Game.time}`, cost: controllerUpgradeCost, structures: [this.room.controller], neededCreeps: -1 });
+			this.room.buildQueue.push({ name: `controller_${Game.time}`, cost: controllerUpgradeCost, structures: [{pos: this.room.controller?.pos, type: this.room.controller } as buildBlueprintBuildElement], neededCreeps: -1 });
 		}
 	}
 
 	checkBuildProgress() {
-		for (let i = 0; i < this.memory.buildQueue.length; i++) {
-			if (this.memory.buildQueue[i].cost <= 0 || this.memory.buildQueue[i].structures.length <= 0) {
-				const creepsWithTask = _.filter(Game.creeps, creep => creep.memory.task != null && creep.memory.task == this.memory.buildQueue[i].name);
+		for (let i = 0; i < this.room.buildQueue.length; i++) {
+			if ( (this.room.buildQueue[i].cost as number) <= 0 || (this.room.buildQueue[i].structures as buildBlueprintBuildElement[]).length <= 0 ) {
+				const creepsWithTask = _.filter(Game.creeps, creep => creep.memory.task != null && creep.memory.task == this.room.buildQueue[i].name);
 
-				if (this.memory.buildQueue.length <= 1) {
-					this.memory.spawnQueue = _.remove(this.memory.spawnQueue, spawn => {
-						return spawn.task === this.memory.buildQueue[i].name;
+				if (this.room.buildQueue.length <= 1) {
+					this.room.spawnQueue = _.remove(this.room.spawnQueue, creepSpawn => {
+						return creepSpawn.memory && creepSpawn.memory.task === this.room.buildQueue[i].name;
+
 					});
 				} else {
-					this.memory.spawnQueue = _.transform(this.memory.spawnQueue, function(result, n) {
-						if (n.task === this.memory.buildQueue[i].name) {
-							n.task = null;
+					this.room.spawnQueue = _.transform(this.room.spawnQueue, function(result: colonieQueueElement[], creepSpawn) {
+						if (creepSpawn.memory && creepSpawn.memory.task === this.room.buildQueue[i].name) {
+							creepSpawn.memory.task = '';
 						}
-						result.push(n);
+						result.push(creepSpawn);
 						return true;
 					  }, []);
 				}
 
-				this.memory.buildQueue = this.memory.buildQueue.splice(i + 1, 1);
+				this.room.buildQueue = this.room.buildQueue.splice(i + 1, 1);
 			}
 		}
 	}
 
-	isBuildAlreadyInQueue(name) {
-		return _.some(this.memory.buildQueue, project => project.name.includes(name));
+	isBuildAlreadyInQueue(name: string) {
+		return _.some(this.room.buildQueue, project => project.name.includes(name));
 	}
 
-	buildPaths(baseName) {
+	buildPaths(baseName?: string) {
 		// return { name: `${name}_${Game.time}`, cost: costs.cost, structures: structureList, neededCreeps: neededCreeps };
-		const buildData = { name: `paths_${Game.time}`, cost: 0, structures: [], neededCreeps: -1 };
+		const buildData: colonieQueueElement = { name: `paths_${Game.time}`, cost: 0, structures: [], neededCreeps: -1 };
 		let energy = this.room.memory.statistics.totalAvailableEnergy;
-		let roomPaths = utils.utils.getElementsByPattern(Memory.paths[this.room.name], `${this.room.name}_.*`)
-		_.remove(roomPaths, function (path) {
+		let roomPaths = utils.utils.getElementsByPattern(this.room.colonieMemory.paths, `${this.room.name}_.*`)
+		_.remove(roomPaths, function (path: IColoniePath) {
 			return path.built;
 		});
 		let i = 0, j = 0;
@@ -150,9 +163,9 @@ export class RoomBuilder implements IBaseRoomClass {
 
 				if (structursAt.length > 0 || constructionSitesAt.length > 0) {
 					continue;
-				} else {
+				} else if (buildData.cost && buildData.structures) {
 					if (buildData.cost + 300 > energy) {
-						this.memory.buildQueue.push(buildData);
+						this.room.buildQueue.push(buildData);
 						return;
 					}
 					buildData.cost += 300;
