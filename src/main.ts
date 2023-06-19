@@ -3,6 +3,7 @@ import * as Core from "./managers/Core";
 import { log } from "./tools/Logger";
 import * as utils from "./utilities";
 import { RoomLogic } from "room/RoomLogic";
+import { CreepLogic } from "creep";
 import { StructureLogic } from "structure/StructureLogic";
 import { LogLevel } from "./enums/loglevel";
 // import './prototypes/room/setup';
@@ -12,21 +13,16 @@ import './prototypes/room';
 log.alert("✨=== Global Reset ===✨");
 
 export function loop() {
-    //Core.run();
+	//Core.run();
 
 	if (!Memory.settings) {
-        Memory.settings = {};
-        log.warning("💎=== Script Loaded ===💎");
-    }
-
-    if (!Memory.settings.loggingLevel) {
-        Memory.settings.loggingLevel = LogLevel.Verbose;
-        log.debug("Logging Level set to Verbose");
-    }
-
-    if (!Memory.settings.user) {
-        Memory.settings.user = getUserName();
-    }
+		Memory.settings = {};
+		Memory.settings.loggingLevel = LogLevel.Verbose;
+		Memory.settings.user = getUserName();
+		Memory.settings.DEBUG = false;
+		log.debug("Logging Level set to Verbose");
+		log.warning("💎=== Script Loaded ===💎");
+	}
 
 	if (!Memory.colonies) {
 		Memory.colonies = {};
@@ -54,13 +50,13 @@ export function loop() {
 		console.log(`CPU-AfterRoom: ${cpuBeforeRoom} -> ${cpuAfterRoom}`);
 	}
 
-	/* _.forEach(Game.creeps, creep => {
-		const creepLogicRun = new creepLogic.CreepLogic();
+	_.forEach(Game.creeps, creep => {
+		const creepLogicRun = new CreepLogic(creep, creep.name);
 		if (!creep.spawning) {
-			creepLogicRun.run(creep, MemoryObject);
+			creepLogicRun._run();
 		}
 	});
-	*/
+
 
 	cpuAfterCreep = Game.cpu.getUsed();
 	if (cpuAfterCreep > (cpuAfterRoom * 3)) {
@@ -80,9 +76,9 @@ export function loop() {
 
 
 function getUserName() {
-    const spawnNames = Object.keys(Game.spawns);
-    if (spawnNames.length === 0) {
-        return;
-    }
-    return Game.spawns[spawnNames[0]].owner.username;
+	const spawnNames = Object.keys(Game.spawns);
+	if (spawnNames.length === 0) {
+		return;
+	}
+	return Game.spawns[spawnNames[0]].owner.username;
 }

@@ -47,3 +47,16 @@ type CreepSpawnMemory = {
  */
 type Coord = { x: number, y: number };
 type HasPos = { pos: RoomPosition }
+
+type StructureWithStorage =
+    | StructureExtension
+    | StructureSpawn
+    | StructureLink
+    | StructureStorage
+    | StructureTower
+    | StructurePowerSpawn
+    | StructureLab
+    | StructureTerminal
+    | StructureContainer
+    | StructureNuker
+    | StructureFactory;

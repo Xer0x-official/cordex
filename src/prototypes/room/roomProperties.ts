@@ -37,10 +37,10 @@ Object.defineProperty(Room.prototype, 'colonieMemory', {
 
 Object.defineProperty(Room.prototype, 'buildQueue', {
 	get: function (): colonieQueueElement[] {
-		return Memory.colonies[this.memory.origin].queues.build;
+		return this.colonieMemory.queues.build;
 	},
 	set: function (value: colonieQueueElement[]) {
-		return Memory.colonies[this.memory.origin].queues.build = value;
+		return this.colonieMemory.queues.build = value;
 	},
 	enumerable: true,
 	configurable: true
@@ -48,10 +48,10 @@ Object.defineProperty(Room.prototype, 'buildQueue', {
 
 Object.defineProperty(Room.prototype, 'repairQueue', {
 	get: function (): colonieQueueElement[] {
-		return Memory.colonies[this.memory.origin].queues.repair;
+		return this.colonieMemory.queues.repair;
 	},
 	set: function (value: colonieQueueElement[]) {
-		return Memory.colonies[this.memory.origin].queues.repair = value;
+		return this.colonieMemory.queues.repair = value;
 	},
 	enumerable: true,
 	configurable: true
@@ -59,10 +59,10 @@ Object.defineProperty(Room.prototype, 'repairQueue', {
 
 Object.defineProperty(Room.prototype, 'spawnQueue', {
 	get: function (): colonieQueueElement[] {
-		return Memory.colonies[this.memory.origin].queues.spawn;
+		return this.colonieMemory.queues.spawn;
 	},
 	set: function (value: colonieQueueElement[]) {
-		return Memory.colonies[this.memory.origin].queues.spawn = value;
+		return this.colonieMemory.queues.spawn = value;
 	},
 	enumerable: true,
 	configurable: true
@@ -93,10 +93,10 @@ Object.defineProperty(Room.prototype, 'isSetup', {
 
 Object.defineProperty(Room.prototype, 'stats', {
 	get: function (): IColonieStats {
-		return Memory.colonies[this.memory.origin].stats;
+		return this.colonieMemory.stats;
 	},
 	set: function (value: IColonieStats) {
-		return Memory.colonies[this.memory.origin].stats = value;
+		return this.colonieMemory.stats = value;
 	},
 	enumerable: true,
 	configurable: true
@@ -104,7 +104,7 @@ Object.defineProperty(Room.prototype, 'stats', {
 
 Object.defineProperty(Room.prototype, 'baseExtensions', {
 	get: function (): IBaseExtensions {
-		return Memory.colonies[this.memory.origin].baseExtensions;
+		return this.colonieMemory.baseExtensions;
 	},
 	set: function (value) {
 		return null

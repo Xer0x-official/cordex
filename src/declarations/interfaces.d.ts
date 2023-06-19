@@ -1,8 +1,8 @@
 
 interface IResourceMemory {
 	[name: string]: any;
-	energy: Id<Source>[],
-	minerals: Id<Mineral>[],
+	energy: {[name: Id<Source>]: Id<Creep> | null},
+	minerals: {[name: Id<Mineral>]: Id<Creep> | null},
 }
 
 interface IColonieStatsRoles {
@@ -53,59 +53,59 @@ interface IColonieMemory {
 	baseExtensions: IBaseExtensions,
 	stats: IColonieStats,
 	queues: IColonieQueues,
-	paths: {[name: string]: IColoniePath},
+	paths: { [name: string]: IColoniePath },
 }
 
 interface PathfinderReturn {
-    path: RoomPosition[];
-    ops: number;
-    cost: number;
-    incomplete: boolean;
+	path: RoomPosition[];
+	ops: number;
+	cost: number;
+	incomplete: boolean;
 }
 
 interface TravelToReturnData {
-    nextPos?: RoomPosition;
-    pathfinderReturn?: PathfinderReturn;
-    state?: TravelState;
-    path?: string;
+	nextPos?: RoomPosition;
+	pathfinderReturn?: PathfinderReturn;
+	state?: TravelState;
+	path?: string;
 }
 
 interface TravelToOptions {
-    ignoreRoads?: boolean;
-    ignoreCreeps?: boolean;
-    ignoreStructures?: boolean;
-    preferHighway?: boolean;
-    highwayBias?: number;
-    allowHostile?: boolean;
-    allowSK?: boolean;
-    range?: number;
-    obstacles?: {pos: RoomPosition}[];
-    roomCallback?: (roomName: string, matrix: CostMatrix) => CostMatrix | boolean;
-    routeCallback?: (roomName: string) => number;
-    returnData?: TravelToReturnData;
-    restrictDistance?: number;
-    useFindRoute?: boolean;
-    maxOps?: number;
-    movingTarget?: boolean;
-    freshMatrix?: boolean;
-    offRoad?: boolean;
-    stuckValue?: number;
-    maxRooms?: number;
-    repath?: number;
-    route?: {[roomName: string]: boolean};
-    ensurePath?: boolean;
+	ignoreRoads?: boolean;
+	ignoreCreeps?: boolean;
+	ignoreStructures?: boolean;
+	preferHighway?: boolean;
+	highwayBias?: number;
+	allowHostile?: boolean;
+	allowSK?: boolean;
+	range?: number;
+	obstacles?: { pos: RoomPosition }[];
+	roomCallback?: (roomName: string, matrix: CostMatrix) => CostMatrix | boolean;
+	routeCallback?: (roomName: string) => number;
+	returnData?: TravelToReturnData;
+	restrictDistance?: number;
+	useFindRoute?: boolean;
+	maxOps?: number;
+	movingTarget?: boolean;
+	freshMatrix?: boolean;
+	offRoad?: boolean;
+	stuckValue?: number;
+	maxRooms?: number;
+	repath?: number;
+	route?: { [roomName: string]: boolean };
+	ensurePath?: boolean;
 }
 
 interface TravelData {
-    state: any[];
-    path?: string;
+	state: any[];
+	path?: string;
 }
 
 interface TravelState {
-    stuckCount: number;
-    lastCoord: Coord;
-    destination: RoomPosition;
-    cpu: number;
+	stuckCount: number;
+	lastCoord: Coord;
+	destination: RoomPosition;
+	cpu: number;
 }
 
 interface Room {
@@ -149,7 +149,23 @@ interface RoomPosition {
 }
 
 interface Creep {
-	travelTo(destination: HasPos|RoomPosition, ops?: TravelToOptions): number;
+	target: Id<Source> | Id<Mineral> | Id<AnyStructure> | Id<AnyCreep> | Id<Resource> | RoomPosition | null;
+
+	hasReachedDestination: (target: any) => boolean;
+	moveToTarget: (err: any, target: any) => any;
+	onRoomBorder: (position?: any) => 1 | 3 | 5 | 7 | null;
+	moveToRoom: (roomName: any) => any;
+	isStuck: () => boolean;
+	clearRouting: () => void;
+	checkPathPosition: () => void;
+	transferToTarget: (target: any, resource: any, ammount: any) => any;
+	buildTarget: () => any;
+	withdrawFromTarget: (target: any, resource: any) => any;
+	harvestTarget: (target: any) => any;
+	pickupResource: (target: any) => any;
+	getRescycled: () => any;
+	aboutToDie(): boolean;
+	travelTo(destination: HasPos | RoomPosition, ops?: TravelToOptions): number;
 	hasState: () => boolean;
 	getState: () => number;
 	setState: (state: number) => void;
@@ -170,11 +186,12 @@ interface CreepMemory {
 	[name: string]: any;
 	job: string,
 	working: boolean,
-	target: any,
+	target: Id<Source> | Id<Mineral> | Id<AnyStructure> | Id<AnyCreep> | RoomPosition | null,
 	task: string,
 	origin: string,
 	lastPositions: RoomPosition[],
 	pathToTarget: number[],
+	energyTarget?: Id<StructureWithStorage> | Id<Resource> | null;
 }
 
 interface PowerCreepMemory {
@@ -234,4 +251,12 @@ interface ITower {
 interface ILink {
 	structureType?: StructureConstant;
 	link: StructureLink;
+}
+
+interface ICreepClass {
+	creep: Creep;
+	name: string;
+	memory: CreepMemory;
+	_run: Function;
+	_updateMemory?: Function;
 }

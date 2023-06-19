@@ -12,7 +12,6 @@ export class RoomLogic implements IRoomLogic, IBaseRoomClass {
 		this.memory = _.cloneDeep(this.room.memory);
 		this.ticks = Game.time;
 
-		this.updateRoleCount();
 		this._run();
 		this._updateMemory();
 	}
@@ -20,8 +19,11 @@ export class RoomLogic implements IRoomLogic, IBaseRoomClass {
 	_run() {
 		if (Object.keys(Memory.colonies).length == 0) {
 			this.room.setupRoom(false, this.name);
+			this._updateMemory();
 			return;
 		}
+
+		this.updateRoleCount();
 
 		// Setup room if it hasn't been set up yet
 		if (this.ticks % 5 === 0) {
@@ -53,13 +55,13 @@ export class RoomLogic implements IRoomLogic, IBaseRoomClass {
 			scouter: 0,
 		}
 		let stats: IColonieStats = {
-			resourceCount: 0,
+			resourceCount: Object.keys(this.room.colonieMemory.resources.energy).length,
 			creepsCount: 0,
 			roles: roles,
 			totalAvailableEnergy: this.getTotalAvailableEnergy(),
 		}
 
-		for (const key in Game.creeps) {
+		for (const key in Memory.creeps) {
 			if (!Game.creeps[key] || Game.creeps[key] === null) {
 				delete Game.creeps[key];
 				delete Memory.creeps[key];
@@ -83,7 +85,7 @@ export class RoomLogic implements IRoomLogic, IBaseRoomClass {
 			}
 		}
 
-		this.room.stats = stats;
+		this.room.colonieMemory.stats = stats;
 	}
 
 	getTotalAvailableEnergy() {

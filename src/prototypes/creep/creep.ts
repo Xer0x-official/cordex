@@ -64,11 +64,11 @@ Creep.prototype.getJob = function getJob() {
 }
 
 Object.defineProperty(Creep.prototype, 'target', {
-	get: function (): any {
+	get: function (): Id<Source> | Id<Mineral> | Id<AnyStructure> | Id<AnyCreep> | Id<Resource> | RoomPosition | null {
 		return this.memory.target;
 	},
-	set: function (value: any) {
-		if (value !== undefined && value === null) {
+	set: function (value: Id<Source> | Id<Mineral> | Id<AnyStructure> | Id<AnyCreep> | Id<Resource> | RoomPosition | null) {
+		if (value !== undefined) {
 			this.memory.target = value;
 		}
 	},
@@ -78,7 +78,7 @@ Object.defineProperty(Creep.prototype, 'target', {
 //#endregion
 
 Creep.prototype.clearTarget = function clearTarget() {
-	this.memory.target = '';
+	this.memory.target = null;
 	this.memory.task = '';
 	this.memory.lastPositions = [];
 	this.memory.pathToTarget = [];
@@ -176,4 +176,8 @@ Creep.prototype.loadResource = function loadResource(resourceType = RESOURCE_ENE
 // assigns a function to Creep.prototype: creep.travelTo(destination)
 Creep.prototype.travelTo = function (destination: RoomPosition | { pos: RoomPosition }, options?: TravelToOptions) {
 	return Traveler.travelTo(this, destination, options);
-};
+}
+
+Creep.prototype.aboutToDie = function () {
+	return this.ticksToLivenumber === 1;
+}

@@ -16,7 +16,7 @@ export class HandleSpawn {
 		this.room = room;
 		this.name = name;
 		this.memory = this.room.memory;
-		this.spawn = Game.getObjectById(this.room.spawns[0]) as StructureSpawn;
+		this.spawn = Game.getObjectById(this.room.colonieMemory.spawns[0]) as StructureSpawn;
 		this.spawnQueue = _.cloneDeep(this.room.spawnQueue);
 		this.buildQueue = _.cloneDeep(this.room.buildQueue);
 		this.stats = _.cloneDeep(this.room.stats);
@@ -136,6 +136,7 @@ export class HandleSpawn {
 			switch (jobs[i]) {
 				case "miner":
 					neededCreeps = (this.stats.resourceCount - this.stats.roles.miner);
+					console.log(`${this.stats.resourceCount} ${this.stats.roles.miner}`);
 					break;
 
 				case "transporter":

@@ -47,8 +47,8 @@ export function setupMemory(colonie: string) {
 		remotes: [
 		],
 		resources: {
-			energy: [],
-			minerals: [],
+			energy: {},
+			minerals: {},
 		},
 		spawns: [],
 		buildingMatrix: [],
