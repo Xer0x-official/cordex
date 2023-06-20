@@ -114,12 +114,13 @@ export class Transporter implements ICreepClass {
 	getTarget() {
 		const sequence = [STRUCTURE_EXTENSION, STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_CONTAINER, STRUCTURE_LINK, FIND_MY_CREEPS, STRUCTURE_STORAGE];
 		let targetWithoutEnoughEnergy: (StructureWithStorage | AnyCreep)[] = [];
+		const originRoom = Game.rooms[this.creep.memory.origin];
 
 		for (let i = 0; i < sequence.length + 1; i++) {
 			if (i === 5) {
-				targetWithoutEnoughEnergy = _.filter(this.creep.room.find(FIND_MY_CREEPS), (target) => !target.spawning && target.memory.job === 'worker' && target.store.getFreeCapacity(RESOURCE_ENERGY) > 0);
+				targetWithoutEnoughEnergy = _.filter(originRoom.find(FIND_MY_CREEPS), (target) => !target.spawning && target.memory.job === 'worker' && target.store.getFreeCapacity(RESOURCE_ENERGY) > 0);
 			} else {
-				targetWithoutEnoughEnergy = _.filter(this.creep.room.find(FIND_STRUCTURES), (target): target is StructureWithStorage =>
+				targetWithoutEnoughEnergy = _.filter(originRoom.find(FIND_STRUCTURES), (target): target is StructureWithStorage =>
 					target.structureType === sequence[i] && target.store !== null &&
 					(
 						(target.structureType === STRUCTURE_TOWER && target.store.getUsedCapacity(RESOURCE_ENERGY) <= target.store.getCapacity(RESOURCE_ENERGY) * 0.5) ||

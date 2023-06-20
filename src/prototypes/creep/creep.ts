@@ -101,73 +101,15 @@ Creep.prototype.getCountOfBodyPart = function getCountOfBodyPart(partType: BodyP
  * @default {RESSOURCE_ENERGY} resourceType
  * @returns {boolean} is creep.store.getFreeCapacity() == 0
  */
-Creep.prototype.loadResource = function loadResource(resourceType = RESOURCE_ENERGY): Resource | StructureContainer | StructureStorage | null {
+Creep.prototype.loadResource = function loadResource(resourceType = RESOURCE_ENERGY, lookInRoom: boolean = false): Resource | StructureContainer | StructureStorage | null {
 	const isCreepFull = this.store.getFreeCapacity() === 0;
+	const colonieMemory = this.room.colonieMemory;
 
-	if (isCreepFull) {
+	if (isCreepFull || !colonieMemory) {
 		return null;
 	}
 
 	const energyTargetCounted = _.countBy(Game.creeps, (creep) => creep.memory.energyTarget || 'undefined');
-
-	/* 	let roomNames: string[] = this.room.colonieMemory.remotes; // Beispielliste der Raumnamen mit einem Duplikat
-		roomNames.push(Object.keys(Memory.colonies)[0]);
-
-		// Entfernen von Duplikaten aus der Raumnamenliste
-		const uniqueRoomNames: string[] = Array.from(new Set(roomNames));
-
-		// Verarbeitung der eindeutigen Raumnamenliste
-		const rooms: Room[] = uniqueRoomNames.map(roomName => Game.rooms[roomName]).filter(room => room);
-	 */
-	// Verarbeitung der eindeutigen Raumnamenliste
-	/* const resourceSources: {
-		[name: string]: any;
-		dropped: Resource[];
-		container: StructureContainer[];
-		storage: StructureStorage[];
-	} = uniqueRoomNames.reduce(
-		(result, roomName) => {
-			const room = Game.rooms[roomName];
-			if (room) {
-				result.dropped.push(...room.find(FIND_DROPPED_RESOURCES));
-				result.container.push(
-					...room.find(FIND_STRUCTURES, {
-						filter: { structureType: STRUCTURE_CONTAINER }
-					}) as StructureContainer[]
-				);
-				if (room.storage) {
-					result.storage.push(room.storage);
-				}
-			}
-			return result;
-		},
-		{ dropped: [], container: [], storage: [] }
-	); */
-	/* const resourceSources: {
-		[name: string]: any;
-		dropped: Resource[];
-		container: StructureContainer[];
-		storage: StructureStorage[];
-	} = { dropped: [], container: [], storage: [] };
-
-	for (let i = 0; i < rooms.length; i++) {
-		resourceSources['dropped'].push(_.chain(rooms[i].find(FIND_DROPPED_RESOURCES))
-			.filter((resource: Resource) => resource.resourceType === resourceType)
-			.sortBy((resource: Resource) => -resource.amount)
-			.head());
-	}
-
-	resourceSources['container'].push(_.chain(this.room.find(FIND_STRUCTURES))
-		.filter((structure: Structure) => structure.structureType === STRUCTURE_CONTAINER &&
-			(!this.target || this.target == null || (this.target && this.target != null && this.target.structureType && this.target.structureType !== STRUCTURE_CONTAINER && this.target.structureType !== STRUCTURE_STORAGE)) &&
-			(structure as StructureContainer).store.getUsedCapacity() > 0)
-		.sortBy((structure: StructureContainer) => -structure.store.getUsedCapacity(resourceType))
-		.head());
-
-	resourceSources['storage'].push((this.room.storage && this.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > 0 &&
-		(!this.target || this.target === null || (!this.target.structureType || this.target.structureType !== STRUCTURE_CONTAINER))) ? this.room.storage : undefined);
- */
-	//resourceSources['dropped'].sort((a, b) => b.amount - a.amount);
 
 	const resourceSources: {
 		[name: string]: any;
@@ -180,34 +122,13 @@ Creep.prototype.loadResource = function loadResource(resourceType = RESOURCE_ENE
 		storage: [],
 	};
 
-	Object.keys(this.room.colonieMemory.resources.dropped.energy).forEach((resourceId) => {
+	Object.keys(colonieMemory.resources.dropped.energy).forEach((resourceId) => {
 		let resource = Game.getObjectById(resourceId as Id<Resource>);
-		if (resource) {
+
+		if (resource && (lookInRoom && resource.pos.roomName === this.memory.origin || !lookInRoom)) {
 			resourceSources.dropped.push(resource)
 		}
 	})
-
-	/* // Suche nach gedropten Resourcen
-	const droppedResources = this.room.find(FIND_DROPPED_RESOURCES, {
-		filter: (resource: Resource) => resource.resourceType === resourceType,
-	})
-	resourceSources.dropped.push(...droppedResources);
-
-	const remoteRoomNames = this.room.colonieMemory.remotes;
-
-	remoteRoomNames.forEach((roomName: string) => {
-		const room = Game.rooms[roomName];
-		if (room) {
-			const droppedResources = room.find(FIND_DROPPED_RESOURCES, {
-				filter: (resource: Resource) => resource.resourceType === resourceType,
-			}).sort((a: Resource, b: Resource) => b.amount - a.amount);
-
-			if (droppedResources && droppedResources.length >= 1) {
-				resourceSources.dropped.push(droppedResources[0]);
-			}
-
-		}
-	}); */
 
 	resourceSources.dropped.sort((a: Resource, b: Resource) => b.amount - a.amount);
 

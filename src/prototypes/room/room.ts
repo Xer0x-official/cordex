@@ -521,18 +521,20 @@ Room.prototype.getEnergyCapacity = function () {
 
 	const allStructures = this.find(FIND_STRUCTURES);
 	allStructures.forEach((structure: Structure) => {
-		switch (structure.structureType) {
-			case STRUCTURE_EXTENSION: {
-				capacity += 50;
-				break;
-			}
-			case STRUCTURE_SPAWN: {
-				capacity += 300;
-				break;
-			}
-			case STRUCTURE_POWER_SPAWN: {
-				capacity += 5000;
-				break;
+		if (structure.isActive()) {
+			switch (structure.structureType) {
+				case STRUCTURE_EXTENSION: {
+					capacity += 50;
+					break;
+				}
+				case STRUCTURE_SPAWN: {
+					capacity += 300;
+					break;
+				}
+				case STRUCTURE_POWER_SPAWN: {
+					capacity += 5000;
+					break;
+				}
 			}
 		}
 	});

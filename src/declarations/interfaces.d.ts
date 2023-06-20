@@ -187,7 +187,7 @@ interface Creep {
 	getJob: () => string;
 	clearTarget: () => number;
 	getCountOfBodyPart: (partType: BodyPartConstant) => number;
-	loadResource: (resourceType?: "energy") => Resource<ResourceConstant> | StructureStorage | StructureContainer | null;
+	loadResource: (resourceType?: "energy", lookInRoom?: boolean) => Resource<ResourceConstant> | StructureStorage | StructureContainer | null;
 }
 
 interface CreepMemory {

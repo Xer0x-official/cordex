@@ -30,8 +30,10 @@ export class HandleSpawn {
 		this.checkForInitCreeps();
 		this.checkSpawnsNeeded();
 
-		if (this.spawnQueue.length > 0)
+		if (this.spawnQueue.length > 0) {
 			this.spawnCreepFromQueue();
+		}
+
 	}
 
 	_updateMemory(): void {
@@ -42,7 +44,7 @@ export class HandleSpawn {
 	}
 
 	checkForInitCreeps() {
-		if (this.room.name === this.memory.origin && this.room.controller && this.room.controller?.level >= 2 && !this.memory.scouted) {
+		if (this.room.name === this.memory.origin && !this.memory.scouted) {
 			this.memory.scouted = true;
 			this.room.memory.scouted = true;
 			// console.log(this.memory.scouted, this.room.memory.scouted);
@@ -60,7 +62,7 @@ export class HandleSpawn {
 			});
 		}
 
-		if (this.stats.creepsCount < 1 && this.spawnQueue.length < 1) {
+		if (this.stats.creepsCount < 1) {
 			const initMinerName = `init_miner_${this.room.name}_${this.ticks - 1}`;
 			const initTransporterName = `init_transporter_${this.room.name}_${this.ticks - 1}`;
 
@@ -103,45 +105,62 @@ export class HandleSpawn {
 		return -1;
 	}
 
+	getSpawnPriorityList(): string[][] {
+		const transporter = this.room.stats.roles.transporter;
+		let spawnPriorityList: string[][] = [['', 'init']];
+
+		if (transporter <= 0) {
+			spawnPriorityList.push(['transporter', ''], ['miner', ''], ['worker', '']);
+		} else if (transporter <= Memory.settings.transporterPerSource * 2) {
+			spawnPriorityList.push(['miner', ''], ['transporter', ''], ['worker', '']);
+		} else {
+			spawnPriorityList.push(['miner', ''], ['worker', ''], ['transporter', '']);
+		}
+
+		spawnPriorityList.push(['scout', '']);
+		return spawnPriorityList;
+	}
+
 	spawnCreepFromQueue() {
 		let spawnDetails: colonieQueueElement = { name: '' };
 		let spawnDetailIndex: number = -1;
+		let generatedBodyParts: BodyPartConstant[] = [];
 		let spawnBodyParts: BodyPartConstant[] = [];
-		let jobs: string[][] = [['', 'init'], ['miner', ''], ['transporter', ''], ['worker', ''], ['scout', '']];
-
-		if (this.room.stats.roles.transporter === 0) {
-			jobs = [['', 'init'], ['transporter', ''], ['miner', ''], ['worker', ''], ['scout', '']];
-		}
-
+		const spawnPriorityList: string[][] = this.getSpawnPriorityList();
+		const energyCapacity = this.room.getEnergyCapacity();
 		let err = 0;
 
 		if (this.room.energyAvailable < 300 || !this.spawn) {
 			return;
 		}
 
-		for (let i = 0; i < jobs.length; i++) {
-			spawnDetailIndex = this.checkSpawnQueueForJob(jobs[i][0], jobs[i][1]);
+		for (let i = 0; i < spawnPriorityList.length; i++) {
+			spawnDetailIndex = this.checkSpawnQueueForJob(spawnPriorityList[i][0], spawnPriorityList[i][1]);
 
-			if (spawnDetailIndex >= 0)
+			if (spawnDetailIndex >= 0) {
 				break;
+			}
 		}
 
-		if (this.room.stats.roles.transporter > 0 &&
-			this.room.energyAvailable < this.room.getEnergyCapacity() &&
-			this.room.stats.totalAvailableEnergy >= this.room.getEnergyCapacity()) {
+		if (this.room.stats.roles.transporter > 0 && this.room.energyAvailable < energyCapacity && this.room.stats.totalAvailableEnergy >= energyCapacity) {
 			return;
 		}
 
 		spawnDetails = this.spawnQueue[spawnDetailIndex];
-		spawnBodyParts = this.getBodyParts(this.room.energyAvailable, spawnDetails.memory?.job);
+		generatedBodyParts = this.getBodyParts(this.room.energyAvailable, spawnDetails.memory?.job);
 
 		if (spawnDetails.bodyParts && spawnDetails.bodyParts.length > 0) {
 			//this.spawnQueue.splice(spawnDetailIndex, 1);
 			spawnBodyParts = spawnDetails.bodyParts;
+		} else {
+			spawnBodyParts = generatedBodyParts;
 		}
 
 		err = this.spawn.spawnCreep(spawnBodyParts, spawnDetails.name, { memory: spawnDetails.memory as CreepMemory });
 
+		if (err === ERR_NOT_ENOUGH_ENERGY) {
+			err = this.spawn.spawnCreep(generatedBodyParts, spawnDetails.name, { memory: spawnDetails.memory as CreepMemory });
+		}
 
 		if (err == OK) {
 			this.spawnQueue.splice(spawnDetailIndex, 1);
