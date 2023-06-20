@@ -9,8 +9,10 @@ import { LogLevel } from "./enums/loglevel";
 // import './prototypes/room/setup';
 import './prototypes/creep';
 import './prototypes/room';
+const roomSetupOffset = Game.time + 3;
 
 log.alert("✨=== Global Reset ===✨");
+
 
 export function loop() {
 	//Core.run();
@@ -19,7 +21,7 @@ export function loop() {
 		Memory.settings = {};
 		Memory.settings.loggingLevel = LogLevel.Verbose;
 		Memory.settings.user = getUserName();
-		Memory.settings.DEBUG = false;
+		Memory.settings.transporterPerSource = 1;
 		log.debug("Logging Level set to Verbose");
 		log.warning("💎=== Script Loaded ===💎");
 	}
@@ -36,7 +38,7 @@ export function loop() {
 	// make a list of all of our rooms
 	let rooms = _.filter(Game.rooms, room => room.controller && room.controller.level > 0 && room.controller.my);
 
-	if (Game.time < 50) {
+	if (Game.time < roomSetupOffset) {
 		return;
 	}
 	// run logic for any rooms and for any creeps
@@ -45,10 +47,10 @@ export function loop() {
 		new StructureLogic(room, room.name);
 	});
 
-	cpuAfterRoom = Game.cpu.getUsed();
+	/* cpuAfterRoom = Game.cpu.getUsed();
 	if (cpuAfterRoom > (cpuBeforeRoom * 1.5)) {
 		console.log(`CPU-AfterRoom: ${cpuBeforeRoom} -> ${cpuAfterRoom}`);
-	}
+	} */
 
 	_.forEach(Game.creeps, creep => {
 		const creepLogicRun = new CreepLogic(creep, creep.name);
@@ -58,19 +60,19 @@ export function loop() {
 	});
 
 
-	cpuAfterCreep = Game.cpu.getUsed();
+	/* cpuAfterCreep = Game.cpu.getUsed();
 	if (cpuAfterCreep > (cpuAfterRoom * 3)) {
 		log.info(`CPU-AfterCreep: ${cpuAfterRoom} -> ${cpuAfterCreep}`);
 	}
-
-	cpuAfterMemory = Game.cpu.getUsed();
+ */
+/*	cpuAfterMemory = Game.cpu.getUsed();
 	if (cpuAfterMemory > (cpuAfterCreep * 1.5)) {
 		log.info(`CPU-AfterMemory: ${cpuAfterMemory} -> ${cpuAfterCreep}`);
 	}
 
 	if (cpuAfterMemory > 20) {
 		log.info(`CPU-WARNING: ${cpuBeforeRoom} -> ${cpuAfterRoom} -> ${cpuAfterCreep} -> ${cpuAfterMemory}`);
-	}
+	} */
 
 }
 

@@ -44,11 +44,14 @@ roomName: {
 export function setupMemory(colonie: string) {
 	Memory.colonies[colonie] = {
 		base: colonie,
-		remotes: [
-		],
+		remotes: [],
 		resources: {
 			energy: {},
 			minerals: {},
+			dropped: {
+				energy: {},
+				minerals: {},
+			}
 		},
 		spawns: [],
 		buildingMatrix: [],
@@ -76,7 +79,6 @@ export function setupMemory(colonie: string) {
 			build: [],
 			repair: [],
 		},
-		paths: {
-		},
+		paths: {},
 	}
 }

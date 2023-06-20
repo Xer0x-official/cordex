@@ -15,13 +15,13 @@ export class Transporter implements ICreepClass {
 		this.creep = creep;
 		this.memory = memory;
 		this.loaded = false;
-		this.spawn = Game.getObjectById(this.creep.room.colonieMemory.spawns[0] as Id<StructureSpawn>) as StructureSpawn;
+		/* this.spawn = Game.getObjectById(this.creep.room.colonieMemory.spawns[0] as Id<StructureSpawn>) as StructureSpawn;
 		this.waitingPositions = [
 			new RoomPosition(this.spawn.pos.x - 1, this.spawn.pos.y + 1, this.creep.room.name),
 			new RoomPosition(this.spawn.pos.x + 1, this.spawn.pos.y + 1, this.creep.room.name),
 			new RoomPosition(this.spawn.pos.x - 1, this.spawn.pos.y + 3, this.creep.room.name),
 			new RoomPosition(this.spawn.pos.x + 1, this.spawn.pos.y + 3, this.creep.room.name),
-		];
+		]; */
 
 		this.targetObject = null;
 		this.energyTarget = null;
@@ -53,12 +53,14 @@ export class Transporter implements ICreepClass {
 			this.memory.target = this.getTarget();
 		}
 
-		if (this.isCreepWaiting) {
+		/* if (this.isCreepWaiting) {
 			this.isWaiting();
-		}
+		} */
 
 
 		if (!this.loaded) {
+			this.memory.energyTarget = null;
+			this.creep.memory.energyTarget = null;
 			this.resourcesAround = this.creep.room.lookForAtArea(LOOK_RESOURCES, this.creep.pos.y - 1, this.creep.pos.x - 1, this.creep.pos.y + 1, this.creep.pos.x + 1, true).map(result => result.resource);;
 
 			for (let i = 0; i < this.resourcesAround.length; i++) {
@@ -67,11 +69,12 @@ export class Transporter implements ICreepClass {
 
 			let loadResourceResult = this.creep.loadResource();
 
-			if (loadResourceResult !== null) {
+			if (loadResourceResult && loadResourceResult !== null) {
 				this.memory.energyTarget = loadResourceResult.id;
 			}
 
 		}
+
 	}
 
 	handelTarget() {
@@ -90,7 +93,6 @@ export class Transporter implements ICreepClass {
 			this.memory.target = null;
 			this.memory.task = '';
 			this.memory.lastPositions = [];
-			//this.memory.pathToTarget = undefined;
 			return 0;
 		} else if (transfer === 2) {
 			return 0;

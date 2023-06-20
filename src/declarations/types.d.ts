@@ -1,7 +1,7 @@
 
 type buildBlueprintBuildElement = {
 	pos: RoomPosition;
-	type: BuildableStructureConstant | undefined;
+	type: BuildableStructureConstant | StructureController | undefined;
 }
 
 type buildBlueprint = {

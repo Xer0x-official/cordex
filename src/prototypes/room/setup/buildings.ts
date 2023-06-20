@@ -4,13 +4,14 @@ import * as roomBlueprints from "room/blueprints";
 export function setupBuildings(room: Room) {
 	const buildingMatrix = new PathFinder.CostMatrix();
 	const spawn = Game.getObjectById(room.spawns[0]) as Structure;
+	console.log(`Spawn: ${spawn}`);
 	const startPosition = new RoomPosition(spawn.pos.x, spawn.pos.y + 2, room.name);
 	const baseExtensions = room.colonieMemory.baseExtensions;
 	const blueprints: {
 		[key: string]: (undefined | bluePrintMatrixElement)[][]
 	} = {
-		'bunker': roomBlueprints.bunker,
-		'tower': roomBlueprints.tower,
+		'bunker': roomBlueprints.bunker,//
+		'tower': roomBlueprints.tower,//
 		'powerBunker': roomBlueprints.powerBunker,
 		'lab': roomBlueprints.lab,
 		'extensionPack_1': roomBlueprints.extensionPack,
@@ -62,13 +63,13 @@ export function setupBuildings(room: Room) {
 
 		for (y = 0; y < blueprints[key].length; y++) {
 			for (x = 0; x < blueprints[key][y].length; x++) {
-				if (blueprints[key][x][y] && blueprints[key][x][y]?.type != STRUCTURE_ROAD) {
+				if (blueprints[key][x][y] && blueprints[key][x][y]?.type !== STRUCTURE_ROAD) {
 					buildingMatrix.set((position.x + offset) + x, (position.y + offset) + y, 255);
 				}
 			}
 		}
-		console.log(`Added ${key} at Position (${position.x + offset}, ${position.y + offset})`);
 
-		room.colonieMemory.buildingMatrix = buildingMatrix.serialize();
+		console.log(`Added ${key} at Position (${position.x + offset}, ${position.y + offset})`);
+		room.buildingMatrix = buildingMatrix;
 	}
 }

@@ -12,10 +12,10 @@ export class HandleSpawn {
 	memory: RoomMemory;
 	ticks: number;
 
-	constructor(room: Room, name: string) {
+	constructor(room: Room, name: string, memory: RoomMemory) {
 		this.room = room;
 		this.name = name;
-		this.memory = this.room.memory;
+		this.memory = memory;
 		this.spawn = Game.getObjectById(this.room.colonieMemory.spawns[0]) as StructureSpawn;
 		this.spawnQueue = _.cloneDeep(this.room.spawnQueue);
 		this.buildQueue = _.cloneDeep(this.room.buildQueue);
@@ -37,10 +37,29 @@ export class HandleSpawn {
 	_updateMemory(): void {
 		this.room.buildQueue = this.buildQueue;
 		this.room.spawnQueue = this.spawnQueue;
+		this.room.memory.scouted = this.memory.scouted;
 		this.room.stats = this.stats;
 	}
 
 	checkForInitCreeps() {
+		if (this.room.name === this.memory.origin && this.room.controller && this.room.controller?.level >= 2 && !this.memory.scouted) {
+			this.memory.scouted = true;
+			this.room.memory.scouted = true;
+			// console.log(this.memory.scouted, this.room.memory.scouted);
+
+			this.spawnQueue.push({
+				bodyParts: [MOVE, MOVE, MOVE], name: `scout_W5N8_${Game.time}`, memory: {
+					job: "scout",
+					working: false,
+					target: null,
+					origin: this.room.name,
+					task: '',
+					lastPositions: [] as RoomPosition[],
+					pathToTarget: [] as number[],
+				}
+			});
+		}
+
 		if (this.stats.creepsCount < 1 && this.spawnQueue.length < 1) {
 			const initMinerName = `init_miner_${this.room.name}_${this.ticks - 1}`;
 			const initTransporterName = `init_transporter_${this.room.name}_${this.ticks - 1}`;
@@ -89,9 +108,14 @@ export class HandleSpawn {
 		let spawnDetailIndex: number = -1;
 		let spawnBodyParts: BodyPartConstant[] = [];
 		let jobs: string[][] = [['', 'init'], ['miner', ''], ['transporter', ''], ['worker', ''], ['scout', '']];
+
+		if (this.room.stats.roles.transporter === 0) {
+			jobs = [['', 'init'], ['transporter', ''], ['miner', ''], ['worker', ''], ['scout', '']];
+		}
+
 		let err = 0;
 
-		if (this.room.energyAvailable < 300) {
+		if (this.room.energyAvailable < 300 || !this.spawn) {
 			return;
 		}
 
@@ -111,15 +135,18 @@ export class HandleSpawn {
 		spawnDetails = this.spawnQueue[spawnDetailIndex];
 		spawnBodyParts = this.getBodyParts(this.room.energyAvailable, spawnDetails.memory?.job);
 
-		if (spawnDetails.bodyParts && spawnDetails.bodyParts.length <= 0) {
-			this.spawnQueue.splice(spawnDetailIndex, 1);
+		if (spawnDetails.bodyParts && spawnDetails.bodyParts.length > 0) {
+			//this.spawnQueue.splice(spawnDetailIndex, 1);
 			spawnBodyParts = spawnDetails.bodyParts;
 		}
 
 		err = this.spawn.spawnCreep(spawnBodyParts, spawnDetails.name, { memory: spawnDetails.memory as CreepMemory });
 
+
 		if (err == OK) {
 			this.spawnQueue.splice(spawnDetailIndex, 1);
+		} else if (err == ERR_BUSY) {
+			this.spawn.pos.pushCreepsAway();
 		} else if (utils.DEBUG) {
 			log.error(err.toString());
 		}
@@ -136,11 +163,11 @@ export class HandleSpawn {
 			switch (jobs[i]) {
 				case "miner":
 					neededCreeps = (this.stats.resourceCount - this.stats.roles.miner);
-					console.log(`${this.stats.resourceCount} ${this.stats.roles.miner}`);
 					break;
 
 				case "transporter":
-					neededCreeps = Math.min(Math.floor((this.stats.resourceCount * 2 + (this.stats.roles.worker / 4)) - this.stats.roles.transporter), 20);
+					//neededCreeps = Math.min(Math.floor((this.stats.resourceCount * 2 + (this.stats.roles.worker / 4)) - this.stats.roles.transporter), 20);
+					neededCreeps = Math.min(Math.floor(this.stats.resourceCount * Memory.settings.transporterPerSource) - this.stats.roles.transporter, 20);
 					break;
 
 				case "worker": {

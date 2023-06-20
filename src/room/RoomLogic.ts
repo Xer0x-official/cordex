@@ -1,4 +1,5 @@
 import { HandleSpawn } from "./HandleSpawn";
+import { RoomBuilder } from "./RoomBuilder";
 
 export class RoomLogic implements IRoomLogic, IBaseRoomClass {
 	room: Room;
@@ -17,37 +18,55 @@ export class RoomLogic implements IRoomLogic, IBaseRoomClass {
 	}
 
 	_run() {
-		if (Object.keys(Memory.colonies).length == 0) {
-			this.room.setupRoom(false, this.name);
-			this._updateMemory();
+		if (this.memory.isSetup && this.name !== this.room.colonieMemory.base) {
 			return;
 		}
 
-		this.updateRoleCount();
+		if (Object.keys(Memory.colonies).length == 0) {
+			this.room.setupRoom(false, this.name);
+			this.memory.isSetup = this.room.memory.isSetup;
+			this.memory.origin = this.room.memory.origin;
+			return;
+		}
 
-		// Setup room if it hasn't been set up yet
+		if (this.ticks < 100) {
+			this.room.distanceTransform(true);
+		}
+
+		this._loadMemoryStatsForTick();
+
+		this.room.colonieMemory.spawns.forEach(spawnId => {
+			const spawn = Game.getObjectById(spawnId);
+			const freePositions = spawn?.pos.getFreePositions();
+			if (spawn && freePositions && freePositions.length <= 0) {
+				spawn.pos.pushCreepsAway();
+			}
+		})
+
+		 // Setup room if it hasn't been set up yet
 		if (this.ticks % 5 === 0) {
-			new HandleSpawn(this.room, this.name);
+			new HandleSpawn(this.room, this.name, this.memory);
 		}
 
 		if (this.ticks % 50 === 0) {
 			this.fillRepairQueue();
 		}
 
-		if (this.ticks % 100 === 0) {
+		if (this.ticks % 90 === 0) {
 			this.getMyStructurs();
-			//new RoomBuilder(this.room, this.memory);
+			new RoomBuilder(this.room, this.name, this.memory);
 		}
 
 		this._updateMemory();
 	}
 
 	_updateMemory() {
+		this.memory.scouted = this.room.memory.scouted;
 		this.room.memory = this.memory;
 	}
 
 	// TODO Funktion aus dem Room Object rausnehmen in ein eigenes Object
-	updateRoleCount() {
+	_loadMemoryStatsForTick() {
 		let roles: IColonieStatsRoles = {
 			miner: 0,
 			transporter: 0,
@@ -86,27 +105,68 @@ export class RoomLogic implements IRoomLogic, IBaseRoomClass {
 		}
 
 		this.room.colonieMemory.stats = stats;
+
+		const containingEnergy: IDroppedResourceMemory = {
+			energy: {},
+			minerals: {},
+		};
+		const roomNames = _.cloneDeep(this.room.colonieMemory.remotes);
+		if (!roomNames.includes(this.memory.origin)) {
+			roomNames.push(this.memory.origin);
+		}
+
+		roomNames.forEach((roomName: string) => {
+			const room = Game.rooms[roomName];
+			if (room) {
+				const droppedResources = room.find(FIND_DROPPED_RESOURCES);
+
+				droppedResources.forEach((resource: Resource) => {
+					if (resource instanceof Resource && !this.room.colonieMemory.resources.dropped.energy[resource.id]) {
+						this.room.colonieMemory.resources.dropped.energy[resource.id] = resource.pos;
+					} else if (resource instanceof Mineral && !this.room.colonieMemory.resources.dropped.minerals[resource.id]) {
+						this.room.colonieMemory.resources.dropped.minerals[resource.id] = resource.pos;
+					}
+				})
+			}
+		});
+
+		Object.keys(this.room.colonieMemory.resources.dropped.energy).forEach((resource) => {
+			if (!Game.getObjectById(resource as Id<Resource>)) {
+				delete this.room.colonieMemory.resources.dropped.energy[resource as Id<Resource>];
+			}
+		})
+
+		Object.keys(this.room.colonieMemory.resources.dropped.minerals).forEach((mineral) => {
+			if (!Game.getObjectById(mineral as Id<Mineral>)) {
+				delete this.room.colonieMemory.resources.dropped.minerals[mineral as Id<Mineral>];
+			}
+		})
 	}
 
 	getTotalAvailableEnergy() {
 		let energy = 0;
 
 		const containingEnergy: {
-			dropped: Resource<RESOURCE_ENERGY>[],
+			dropped: Resource[],
 			container: StructureContainer[],
 			storage: StructureStorage[],
 			link: StructureLink[],
 			terminal: StructureTerminal[],
 		} = {
-			'dropped': this.room.find(FIND_DROPPED_RESOURCES, {
-				filter: resource => resource.resourceType === RESOURCE_ENERGY
-			}),
+			'dropped': [],
 			'container': [],
 			'storage': [],
 			'link': [],
 			'terminal': [],
 		};
 		const allStructures = this.room.find(FIND_STRUCTURES);
+
+		Object.keys(this.room.colonieMemory.resources.dropped.energy).forEach((resourceId) => {
+			let resource = Game.getObjectById(resourceId as Id<Resource>);
+			if (resource) {
+				containingEnergy['dropped'].push(resource)
+			}
+		})
 
 		allStructures.forEach((structure: Structure) => {
 			if (structure.structureType === STRUCTURE_CONTAINER && (structure as StructureContainer).store.getUsedCapacity(RESOURCE_ENERGY) > 0) {
@@ -140,7 +200,9 @@ export class RoomLogic implements IRoomLogic, IBaseRoomClass {
 
 	getMyStructurs() {
 		_.forEach(this.room.find(FIND_STRUCTURES), (structure: Structure) => {
-			this.room.colonieMemory.myStructurs.push(structure.id);
+			if (!this.room.colonieMemory.myStructurs.includes(structure.id)) {
+				this.room.colonieMemory.myStructurs.push(structure.id);
+			}
 		});
 	}
 

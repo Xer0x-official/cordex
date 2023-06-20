@@ -1,5 +1,5 @@
 
-export {};
+export { };
 
 Creep.prototype.hasReachedDestination = function hasReachedDestination(target) {
 	if (!target || target === null) {
@@ -32,6 +32,8 @@ Creep.prototype.moveToTarget = function moveToTarget(err, target) {
 		this.memory.routing = { lastRoom: this.room.name };
 	}
 
+
+
 	if (err === OK || err !== ERR_NOT_IN_RANGE) {
 		this.memory.routing.lastPositions = [];
 		this.memory.routing.pathToTarget = undefined;
@@ -43,13 +45,13 @@ Creep.prototype.moveToTarget = function moveToTarget(err, target) {
 		return 0;
 	}
 
-	if (target.pos.roomName != this.room.name && Game.time % 2 === 0) {
+	/* if (target.pos.roomName != this.room.name && Game.time % 2 === 0) {
 		let err = this.moveToRoom(target.pos.roomName);
 		this.memory.routing.pathToTarget = null;
 		return err;
 	} else if (this.room.name != this.memory.routing.lastRoom) {
 		this.memory.routing.lastRoom = this.room.name
-	}
+	} */
 
 	/* if (!this.memory.routing.pathToTarget || this.memory.routing.pathToTarget === null || this.isStuck()) {
 		const path = this.room.findPath(this.pos, target.pos);
@@ -65,28 +67,27 @@ Creep.prototype.moveToTarget = function moveToTarget(err, target) {
 		try {
 			/* const path = this.memory.routing.pathToTarget; */
 			/* if (path && path.length > 0) { */
-				const lastPosition = this.pos;
-				let moveErr = 0;
+			const lastPosition = this.pos;
+			let moveErr = 0;
 
-				if (this.target === RoomPosition) {
-					moveErr = this.travelTo(this.target); //this.moveByPath(path);
-				} else {
-					target = Game.getObjectById(this.target);
-					moveErr = this.travelTo(target);
-				}
-				if (moveErr === OK) {
-					new RoomVisual(this.room.name).line(this.pos, this.memory.routing.targetPos, { lineStyle: 'dotted', color: '#99ffcc', opacity: 0.3, width: 0.02 })
-					this.memory.routing.lastPositions = this.memory.routing.lastPositions || [];
-					this.memory.routing.lastPositions.unshift(lastPosition);
-					this.memory.routing.lastPositions = this.memory.routing.lastPositions.slice(0, 7);
-				} else if (moveErr === ERR_NOT_FOUND) {
-					this.checkPathPosition();
-				} else {
-					console.log(moveErr);
-				}
+			/* if (this.target) {
+				moveErr = this.travelTo(this.target); //this.moveByPath(path);
+
+			} else {
+				target = Game.getObjectById(this.target); */
+			moveErr = this.travelTo(target, { range: 1, ignoreCreeps: false });
+			// }
+			if (moveErr === OK) {
+				// new RoomVisual(this.room.name).line(this.pos, this.target.pos, { lineStyle: 'dotted', color: '#99ffcc', opacity: 0.3, width: 0.02 })
+				this.memory.routing.lastPositions = this.memory.routing.lastPositions || [];
+				this.memory.routing.lastPositions.unshift(lastPosition);
+				this.memory.routing.lastPositions = this.memory.routing.lastPositions.slice(0, 7);
+			} else if (moveErr === ERR_NOT_FOUND) {
+				this.checkPathPosition();
+			}
 			/* } */
 		} catch (err) {
-			console.log(`${this.name} (${this.pos.x}, ${this.pos.y}): ${err}`);
+			console.log(`${this.name}:routing.moveToTarget.z66-z95 (${this.pos.x}, ${this.pos.y}): ${err}`);
 			return 1;
 		}
 	}
@@ -112,13 +113,7 @@ Creep.prototype.onRoomBorder = function (position = this.pos) {
 }
 
 Creep.prototype.moveToRoom = function (roomName) {
-	return this.travelTo(new RoomPosition(25, 25, roomName), {reusePath: 5, visualizePathStyle: {
-		fill: 'transparent',
-		stroke: '#fff',
-		lineStyle: 'dashed',
-		strokeWidth: .15,
-		opacity: .1
-	}});
+	return this.travelTo(new RoomPosition(25, 25, roomName), { range: 0, ignoreCreeps: false });
 }
 
 Creep.prototype.isStuck = function () {
@@ -155,7 +150,7 @@ Creep.prototype.checkPathPosition = function () {
 	const path = this.memory.pathToTarget;//Room.deserializePath(this.memory.pathToTarget);
 	if (!this.pos.isEqualTo(path[0].x, path[0].y)) {
 		const targetPosition = new RoomPosition(path[0].x, path[0].y, this.room.name);
-		this.travelTo(targetPosition);
+		this.travelTo(targetPosition, { range: 0, ignoreCreeps: false });
 	}
 };
 
@@ -199,18 +194,22 @@ Creep.prototype.withdrawFromTarget = function withdrawFromTarget(target, resourc
 		return this.moveToTarget(ERR_NOT_IN_RANGE, target);
 }
 
-Creep.prototype.harvestTarget = function harvestTarget(target) {
+Creep.prototype.harvestTarget = function harvestTarget(target: any, isOtherRoom: boolean) {
 
 	if (!this.memory.working) {
-		if (this.pos.inRangeTo(target, 1)) {
-			let err = this.harvest(target);
-			if (err === OK) {
-				this.clearRouting();
-				this.memory.working = true;
-				return err;
-			}
+		if (isOtherRoom) {
+			return this.moveToTarget(ERR_NOT_IN_RANGE, { pos: new RoomPosition(target.pos.x, target.pos.y, target.pos.roomName) });
 		} else {
-			return this.moveToTarget(ERR_NOT_IN_RANGE, target);
+			if (this.pos.inRangeTo(target, 1)) {
+				let err = this.harvest(target);
+				if (err === OK) {
+					this.clearRouting();
+					this.memory.working = true;
+					return err;
+				}
+			} else {
+				return this.moveToTarget(ERR_NOT_IN_RANGE, target);
+			}
 		}
 
 	} else {

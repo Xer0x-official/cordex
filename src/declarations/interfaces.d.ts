@@ -1,8 +1,15 @@
 
+interface IDroppedResourceMemory {
+	[name: string]: any;
+	energy: {[name: Id<Resource>]: RoomPosition},
+	minerals: {[name: Id<Mineral>]: RoomPosition},
+}
+
 interface IResourceMemory {
 	[name: string]: any;
-	energy: {[name: Id<Source>]: Id<Creep> | null},
-	minerals: {[name: Id<Mineral>]: Id<Creep> | null},
+	energy: {[name: Id<Source>]: { pos: RoomPosition, miner: Id<Creep> | null}},
+	minerals: {[name: Id<Mineral>]: { pos: RoomPosition, miner: Id<Creep> | null}},
+	dropped: IDroppedResourceMemory;
 }
 
 interface IColonieStatsRoles {
@@ -49,7 +56,7 @@ interface IColonieMemory {
 	resources: IResourceMemory,
 	spawns: Id<StructureSpawn>[],
 	buildingMatrix: number[],
-	myStructurs: string[],
+	myStructurs: Id<Structure>[],
 	baseExtensions: IBaseExtensions,
 	stats: IColonieStats,
 	queues: IColonieQueues,
@@ -115,20 +122,20 @@ interface Room {
 	stats: IColonieStats;
 	spawns: Id<StructureSpawn>[];
 	colonieMemory: IColonieMemory;
-	buildingMatrix: number[];
+	buildingMatrix: CostMatrix;
 	isSetup: boolean;
 	baseExtensions: IBaseExtensions;
 
 	setupRoom: (isRemote?: boolean, origin?: string) => void;
 	getMineral: () => any;
 	getBuildQueueTask: (name?: string) => any;
-	getPositionForBuild: (spaceNeeded?: number, sourcePoint?: RoomPosition[], rect?: boolean, planingMatrix?: CostMatrix | undefined) => RoomPosition;
-	distanceTransform: (enableVisuals?: boolean, rect?: boolean, planingMatrix?: any, x1?: number, y1?: number, x2?: number, y2?: number) => any;
-	rectengularDistanceTransform: (x1?: number, y1?: number, x2?: number, y2?: number, plannedMatrix?: CostMatrix) => CostMatrix;
-	diagonalDistanceTransform: (x1?: number, y1?: number, x2?: number, y2?: number, plannedMatrix?: CostMatrix) => CostMatrix;
+	getPositionForBuild: (spaceNeeded?: number, sourcePoint?: RoomPosition[], rect?: boolean, buildingMatrix?: CostMatrix | undefined) => RoomPosition;
+	distanceTransform: (enableVisuals?: boolean, rect?: boolean, buildingMatrix?: CostMatrix, x1?: number, y1?: number, x2?: number, y2?: number) => any;
+	rectengularDistanceTransform: (x1?: number, y1?: number, x2?: number, y2?: number, buildingMatrix?: CostMatrix) => CostMatrix;
+	diagonalDistanceTransform: (x1?: number, y1?: number, x2?: number, y2?: number, buildingMatrix?: CostMatrix) => CostMatrix;
 	buildBlueprint: (startPos: RoomPosition, name: string, energyCap?: number) => buildBlueprint;
 	floodFill: (seeds: RoomPosition[], enableVisuals?: boolean) => CostMatrix;
-	getAdjacentRooms: (range?: number) => string[] | null;
+	getAdjacentRooms: (range?: number) => string[];
 	getEnergyCapacity: () => number;
 	createVisual: (x1: number, y1: number, x2: number, y2: number, distanceCM: CostMatrix) => void;
 	getSources: () => any;
@@ -146,6 +153,7 @@ interface RoomPosition {
 	getNearbyPositions: (range?: number) => RoomPosition[];
 	isNearEdge: () => any;
 	isEdge: () => any;
+	pushCreepsAway: () => void;
 }
 
 interface Creep {
@@ -161,7 +169,7 @@ interface Creep {
 	transferToTarget: (target: any, resource: any, ammount: any) => any;
 	buildTarget: () => any;
 	withdrawFromTarget: (target: any, resource: any) => any;
-	harvestTarget: (target: any) => any;
+	harvestTarget: (target: any, isOtherRoom: boolean) => any;
 	pickupResource: (target: any) => any;
 	getRescycled: () => any;
 	aboutToDie(): boolean;
@@ -223,6 +231,7 @@ interface IEmpireMemory {
 }
 
 interface Memory {
+	test: number[];
 	colonies: { [name: string]: IColonieMemory };
 	empire: IEmpireMemory;
 	manager: any;
@@ -259,4 +268,8 @@ interface ICreepClass {
 	memory: CreepMemory;
 	_run: Function;
 	_updateMemory?: Function;
+}
+
+interface Spawn {
+	pushCreepsAway: () => void;
 }

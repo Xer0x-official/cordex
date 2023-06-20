@@ -51,3 +51,18 @@ RoomPosition.prototype.getFreePositions = function (range: number = 1) {
 
 	return positions;
 }
+
+RoomPosition.prototype.pushCreepsAway = function() {
+	const spaceAround: RoomPosition[] = this.getNearbyPositions();
+	let creepAtPosition;
+	let freeCreepPosition;
+
+	spaceAround.forEach((position: RoomPosition) => {
+		creepAtPosition = Game.rooms[this.roomName].lookForAt(LOOK_CREEPS, position);
+		if (creepAtPosition.length > 0) {
+			freeCreepPosition = creepAtPosition[0].pos.getFreePositions();
+			creepAtPosition[0].travelTo(freeCreepPosition[0]);
+			// console.log(`tried to push ${creepAtPosition[0].name} to ${freeCreepPosition[0]}`);
+		}
+	})
+}

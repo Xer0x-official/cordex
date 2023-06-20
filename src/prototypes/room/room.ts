@@ -39,7 +39,7 @@ Room.prototype.getMineral = function () {
 
 Room.prototype.getBuildQueueTask = function getBuildQueueTask(name = '') {
 	let i = 0;
-	if (!name) {
+	if (!name || !this.colonieMemory || !this.buildQueue) {
 		return null;
 	}
 
@@ -131,9 +131,9 @@ Room.prototype.getBuildQueueTask = function getBuildQueueTask(name = '') {
 }
  */
 
-Room.prototype.getPositionForBuild = function getPositionForBuild(spaceNeeded = 5, sourcePoint: RoomPosition[] = [this.controller.pos], rect = true, planingMatrix: CostMatrix | undefined = undefined) {
+Room.prototype.getPositionForBuild = function getPositionForBuild(spaceNeeded = 5, sourcePoint: RoomPosition[] = [this.controller.pos], rect = true, buildingMatrix: CostMatrix | undefined = undefined) {
 	const floodMatrix = this.floodFill(sourcePoint, false);
-	const distanceMatrix = this.distanceTransform(false, rect, planingMatrix);
+	const distanceMatrix = this.distanceTransform(false, rect, buildingMatrix);
 
 	const centerOffset = Math.floor((spaceNeeded + 2) / 2);
 	const checkMatrix = generateCheckMatrix(spaceNeeded + 2);
@@ -174,13 +174,13 @@ Room.prototype.getPositionForBuild = function getPositionForBuild(spaceNeeded = 
 	return possibleBuildingSpots[0].pos;
 }
 
-Room.prototype.distanceTransform = function (enableVisuals = false, rect = true, planingMatrix = this.planingMatrix, x1 = 0, y1 = 0, x2 = roomDimensions - 1, y2 = roomDimensions - 1) {
+Room.prototype.distanceTransform = function (enableVisuals = false, rect = true, buildingMatrix: CostMatrix = this.buildingMatrix , x1 = 0, y1 = 0, x2 = roomDimensions - 1, y2 = roomDimensions - 1) {
 	let transform = undefined;
 
 	if (rect) {
-		transform = this.rectengularDistanceTransform(x1, y1, x2, y2, planingMatrix);
+		transform = this.rectengularDistanceTransform(x1, y1, x2, y2, buildingMatrix);
 	} else {
-		transform = this.diagonalDistanceTransform(x1, y1, x2, y2, planingMatrix);
+		transform = this.diagonalDistanceTransform(x1, y1, x2, y2, buildingMatrix);
 	}
 
 	if (enableVisuals) {
@@ -194,11 +194,13 @@ Room.prototype.distanceTransform = function (enableVisuals = false, rect = true,
 /**
  * This is good for anything that isn't a diagonal, as searches all adjacent tiles when finding distance
  */
-Room.prototype.rectengularDistanceTransform = function (x1 = 0, y1 = 0, x2 = roomDimensions - 1, y2 = roomDimensions - 1, plannedMatrix:CostMatrix = this.planingMatrix): CostMatrix {
+Room.prototype.rectengularDistanceTransform = function (x1 = 0, y1 = 0, x2 = roomDimensions - 1, y2 = roomDimensions - 1, buildingMatrix: CostMatrix = this.buildingMatrix): CostMatrix {
 	const room = this
 	const terrain = new Room.Terrain(this.name);
 	const initialCM = new PathFinder.CostMatrix;
-	const planingMatrix = (plannedMatrix ? plannedMatrix : new PathFinder.CostMatrix());
+
+	const planingMatrix = (buildingMatrix ? buildingMatrix : new PathFinder.CostMatrix());
+
 
 	// Fill CostMatrix with default terrain costs for future analysis:
 	for (let y = 0; y < 50; y++) {
@@ -259,13 +261,13 @@ Room.prototype.rectengularDistanceTransform = function (x1 = 0, y1 = 0, x2 = roo
 /**
  * This is good for finding open diamond-shaped areas, as it voids adjacent diagonal tiles when finding distance
  */
-Room.prototype.diagonalDistanceTransform = function (x1 = 0, y1 = 0, x2 = roomDimensions - 1, y2 = roomDimensions - 1, plannedMatrix: CostMatrix = this.planingMatrix): CostMatrix {
+Room.prototype.diagonalDistanceTransform = function (x1 = 0, y1 = 0, x2 = roomDimensions - 1, y2 = roomDimensions - 1, buildingMatrix: CostMatrix = this.buildingMatrix): CostMatrix {
 	const room: Room = this;
 
 	// Use a costMatrix to record distances
 	const terrain = new Room.Terrain(this.name);
 	const distanceCM = new PathFinder.CostMatrix();
-	const planingMatrix = (plannedMatrix ? plannedMatrix : new PathFinder.CostMatrix());
+	const planingMatrix = (buildingMatrix ? buildingMatrix : new PathFinder.CostMatrix());
 
 	let x = 0, y = 0;
 
@@ -341,7 +343,7 @@ Room.prototype.checkBlueprintCosts = function checkBlueprintCosts(startPos, name
 Room.prototype.buildBlueprint = function buildBlueprint(
 	startPos: RoomPosition,
 	name: string,
-	energyCap: number = this.getStatistics().totalAvailableEnergy): buildBlueprint {
+	energyCap: number = this.stats.totalAvailableEnergy): buildBlueprint {
 
 	const startPosition = new RoomPosition(startPos.x, startPos.y, this.name);
 	const terrain = new Room.Terrain(this.name);
@@ -508,7 +510,7 @@ Room.prototype.getAdjacentRooms = function (range = 1) {
 		}
 	} catch (err) {
 		console.log(`getAdjacentRoom: ${err}`)
-		return null
+		return [];
 	}
 
 	return roomList;
@@ -545,8 +547,11 @@ Room.prototype.createVisual = function createVisual(x1: number, y1: number, x2: 
 	for (x = x1; x <= x2; x += 1) {
 		for (y = y1; y <= y2; y += 1) {
 			visual.rect(x - 0.5, y - 0.5, 1, 1, { fill: `hsl(${200 + (distanceCM.get(x, y) * 10)}, 100%, 60%)`, opacity: 0.07, });
-			if (distanceCM.get(x, y) > 0)
+			if (distanceCM.get(x, y) > 0) {
 				visual.text(distanceCM.get(x, y).toString(), x, y);
+			} else {
+				visual.rect(x - 0.5, y - 0.5, 1, 1, { fill: `hsl(330, 100%, 40%)`, opacity: 0.2, });
+			}
 		}
 	}
 }

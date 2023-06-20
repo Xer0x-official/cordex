@@ -1,8 +1,9 @@
-const utils = require('../utils');
+import { Console } from "console";
+import * as utils from "../utilities";
 
 export class RoomBuilder implements IBaseRoomClass {
 
-room: Room;
+	room: Room;
 	name: string
 	memory: RoomMemory;
 	rcl: number;
@@ -13,6 +14,7 @@ room: Room;
 
 	constructor(room: Room, name: string, memory: RoomMemory) {
 		this.room = room;
+		this.name = name;
 		this.memory = memory;
 		this.rcl = this.room.controller?.level as number;
 		this.spawn = Game.getObjectById(this.room.spawns[0]) as StructureSpawn;
@@ -38,7 +40,7 @@ room: Room;
 			case 3:
 				this.buildStructure('tower');
 			case 2:
-				this.buildStructure('bunker', this.spawn.pos);
+				this.buildStructure('bunker', new RoomPosition(this.spawn.pos.x - 3, this.spawn.pos.y -1, this.name));
 			default:
 				this.buildPaths();
 				this.buildController();
@@ -57,8 +59,6 @@ room: Room;
 			const baseExtensions = this.room.baseExtensions;
 			let extension = undefined;
 			let constructionErr = 0;
-			let structuresToDelete = [];
-			let i = 0;
 
 			if (name.includes('extensionPack')) {
 				const pack = parseInt(name.slice(-1), 10);
@@ -68,13 +68,16 @@ room: Room;
 				extension = baseExtensions[name];
 			}
 
-			const position = positionInit || new RoomPosition(extension.x - 2, extension.y - 2, this.room.name);
+			const position = positionInit || new RoomPosition(extension.x - 2, extension.y - 2, this.name);
 			const project = this.room.buildBlueprint(position, name);
 
 			if (project.structures.length > 0 && project.cost > 0) {
 				console.log(`ROOM: Tried to add buildingProject ${project.name} with ${project.cost} costs`);
 
-				for (let i = project.structures.length -1; i >= 0; i--) {
+
+				for (let i = project.structures.length - 1; i >= 0; i--) {
+
+
 					let lookForStuctures = _.filter(this.room.lookForAt(LOOK_STRUCTURES, project.structures[i].pos), structure =>
 						structure.structureType != project.structures[i].type
 					);
@@ -99,7 +102,6 @@ room: Room;
 
 				if (project.structures.length > 0) {
 					this.room.buildQueue.push(project);
-
 				}
 			}
 		}
@@ -110,28 +112,48 @@ room: Room;
 			let controllerUpgradeCost = (Math.floor(this.room.stats.totalAvailableEnergy / this.controllerUpgradeThreshhold) * this.controllerUpgradeThreshhold) * 0.75;
 			controllerUpgradeCost = controllerUpgradeCost > (CONTROLLER_LEVELS[this.rcl] * 0.25) ? (CONTROLLER_LEVELS[this.rcl] * 0.25) : controllerUpgradeCost;
 			console.log(`ROOM: Tried to add buildingProject controller_${Game.time} with ${controllerUpgradeCost} costs`);
-			this.room.buildQueue.push({ name: `controller_${Game.time}`, cost: controllerUpgradeCost, structures: [{pos: this.room.controller?.pos, type: this.room.controller } as buildBlueprintBuildElement], neededCreeps: -1 });
+
+			this.room.buildQueue.push({
+				name: `controller_${Game.time}`,
+				cost: controllerUpgradeCost,
+				structures: [{ pos: this.room.controller?.pos, type: undefined } as buildBlueprintBuildElement],
+				neededCreeps: -1
+			});
 		}
 	}
 
 	checkBuildProgress() {
 		for (let i = 0; i < this.room.buildQueue.length; i++) {
-			if ( (this.room.buildQueue[i].cost as number) <= 0 || (this.room.buildQueue[i].structures as buildBlueprintBuildElement[]).length <= 0 ) {
+			_.remove((this.room.buildQueue[i].structures as buildBlueprintBuildElement[]), (structure) => {
+				if (structure.type && this.room.lookForAt(LOOK_CONSTRUCTION_SITES, structure.pos.x, structure.pos.y).length <= 0) {
+					//console.log(`${structure.type} (${Object.entries(structure.pos)}): wird gelöscht`)
+				}
+				return (structure.type && this.room.lookForAt(LOOK_CONSTRUCTION_SITES, structure.pos.x, structure.pos.y).length <= 0);
+			});
+
+			//console.log((this.room.buildQueue[i].structures as buildBlueprintBuildElement[]).length);
+
+			if (this.room.buildQueue[i].structures && (this.room.buildQueue[i].cost as number) <= 0 || (this.room.buildQueue[i].structures as buildBlueprintBuildElement[]).length <= 0) {
+				//console.log(`Splice (${this.room.buildQueue[i].name}): ${this.room.buildQueue[i].cost} - ${(this.room.buildQueue[i].structures as buildBlueprintBuildElement[]).length}`);
 				const creepsWithTask = _.filter(Game.creeps, creep => creep.memory.task != null && creep.memory.task == this.room.buildQueue[i].name);
 
 				if (this.room.buildQueue.length <= 1) {
-					this.room.spawnQueue = _.remove(this.room.spawnQueue, creepSpawn => {
-						return creepSpawn.memory && creepSpawn.memory.task === this.room.buildQueue[i].name;
+					let queueName = this.room.buildQueue[i].name;
+
+					_.remove(this.room.spawnQueue, creepSpawn => {
+						return creepSpawn.memory && creepSpawn.memory.task === queueName;
 
 					});
 				} else {
-					this.room.spawnQueue = _.transform(this.room.spawnQueue, function(result: colonieQueueElement[], creepSpawn) {
-						if (creepSpawn.memory && creepSpawn.memory.task === this.room.buildQueue[i].name) {
+					let queueName = this.room.buildQueue[i].name;
+
+					_.transform(this.room.spawnQueue, function (result: colonieQueueElement[], creepSpawn) {
+						if (creepSpawn.memory && creepSpawn.memory.task === queueName) {
 							creepSpawn.memory.task = '';
 						}
 						result.push(creepSpawn);
 						return true;
-					  }, []);
+					}, []);
 				}
 
 				this.room.buildQueue = this.room.buildQueue.splice(i + 1, 1);
@@ -146,8 +168,8 @@ room: Room;
 	buildPaths(baseName?: string) {
 		// return { name: `${name}_${Game.time}`, cost: costs.cost, structures: structureList, neededCreeps: neededCreeps };
 		const buildData: colonieQueueElement = { name: `paths_${Game.time}`, cost: 0, structures: [], neededCreeps: -1 };
-		let energy = this.room.memory.statistics.totalAvailableEnergy;
-		let roomPaths = utils.utils.getElementsByPattern(this.room.colonieMemory.paths, `${this.room.name}_.*`)
+		let energy = this.room.stats.totalAvailableEnergy;
+		let roomPaths = utils.getElementsByPattern(this.room.colonieMemory.paths, `${this.room.name}_.*`)
 		_.remove(roomPaths, function (path: IColoniePath) {
 			return path.built;
 		});

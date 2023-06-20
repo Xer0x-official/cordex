@@ -104,28 +104,127 @@ Creep.prototype.getCountOfBodyPart = function getCountOfBodyPart(partType: BodyP
 Creep.prototype.loadResource = function loadResource(resourceType = RESOURCE_ENERGY): Resource | StructureContainer | StructureStorage | null {
 	const isCreepFull = this.store.getFreeCapacity() === 0;
 
-	if (isCreepFull)
+	if (isCreepFull) {
 		return null;
+	}
+
+	const energyTargetCounted = _.countBy(Game.creeps, (creep) => creep.memory.energyTarget || 'undefined');
+
+	/* 	let roomNames: string[] = this.room.colonieMemory.remotes; // Beispielliste der Raumnamen mit einem Duplikat
+		roomNames.push(Object.keys(Memory.colonies)[0]);
+
+		// Entfernen von Duplikaten aus der Raumnamenliste
+		const uniqueRoomNames: string[] = Array.from(new Set(roomNames));
+
+		// Verarbeitung der eindeutigen Raumnamenliste
+		const rooms: Room[] = uniqueRoomNames.map(roomName => Game.rooms[roomName]).filter(room => room);
+	 */
+	// Verarbeitung der eindeutigen Raumnamenliste
+	/* const resourceSources: {
+		[name: string]: any;
+		dropped: Resource[];
+		container: StructureContainer[];
+		storage: StructureStorage[];
+	} = uniqueRoomNames.reduce(
+		(result, roomName) => {
+			const room = Game.rooms[roomName];
+			if (room) {
+				result.dropped.push(...room.find(FIND_DROPPED_RESOURCES));
+				result.container.push(
+					...room.find(FIND_STRUCTURES, {
+						filter: { structureType: STRUCTURE_CONTAINER }
+					}) as StructureContainer[]
+				);
+				if (room.storage) {
+					result.storage.push(room.storage);
+				}
+			}
+			return result;
+		},
+		{ dropped: [], container: [], storage: [] }
+	); */
+	/* const resourceSources: {
+		[name: string]: any;
+		dropped: Resource[];
+		container: StructureContainer[];
+		storage: StructureStorage[];
+	} = { dropped: [], container: [], storage: [] };
+
+	for (let i = 0; i < rooms.length; i++) {
+		resourceSources['dropped'].push(_.chain(rooms[i].find(FIND_DROPPED_RESOURCES))
+			.filter((resource: Resource) => resource.resourceType === resourceType)
+			.sortBy((resource: Resource) => -resource.amount)
+			.head());
+	}
+
+	resourceSources['container'].push(_.chain(this.room.find(FIND_STRUCTURES))
+		.filter((structure: Structure) => structure.structureType === STRUCTURE_CONTAINER &&
+			(!this.target || this.target == null || (this.target && this.target != null && this.target.structureType && this.target.structureType !== STRUCTURE_CONTAINER && this.target.structureType !== STRUCTURE_STORAGE)) &&
+			(structure as StructureContainer).store.getUsedCapacity() > 0)
+		.sortBy((structure: StructureContainer) => -structure.store.getUsedCapacity(resourceType))
+		.head());
+
+	resourceSources['storage'].push((this.room.storage && this.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > 0 &&
+		(!this.target || this.target === null || (!this.target.structureType || this.target.structureType !== STRUCTURE_CONTAINER))) ? this.room.storage : undefined);
+ */
+	//resourceSources['dropped'].sort((a, b) => b.amount - a.amount);
 
 	const resourceSources: {
 		[name: string]: any;
-		dropped: Resource;
-		container: StructureContainer;
-		storage: StructureStorage;
+		dropped: Resource[];
+		container: StructureContainer[];
+		storage: StructureStorage[];
 	} = {
-		dropped: _.chain(this.room.find(FIND_DROPPED_RESOURCES))
-			.filter((resource: Resource) => resource.resourceType === resourceType)
-			.sortBy((resource: Resource) => -resource.amount)
-			.head(),
-		container: _.chain(this.room.find(FIND_STRUCTURES))
-			.filter((structure: Structure) => structure.structureType === STRUCTURE_CONTAINER &&
-				(!this.target || this.target == null || (this.target && this.target != null && this.target.structureType && this.target.structureType !== STRUCTURE_CONTAINER && this.target.structureType !== STRUCTURE_STORAGE)) &&
-				(structure as StructureContainer).store.getUsedCapacity() > 0)
-			.sortBy((structure: StructureContainer) => -structure.store.getUsedCapacity(resourceType))
-			.head(),
-		storage: (this.room.storage && this.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > 0 &&
-			(!this.target || this.target === null || (!this.target.structureType || this.target.structureType !== STRUCTURE_CONTAINER))) ? this.room.storage : undefined,
+		dropped: [],
+		container: [],
+		storage: [],
 	};
+
+	Object.keys(this.room.colonieMemory.resources.dropped.energy).forEach((resourceId) => {
+		let resource = Game.getObjectById(resourceId as Id<Resource>);
+		if (resource) {
+			resourceSources.dropped.push(resource)
+		}
+	})
+
+	/* // Suche nach gedropten Resourcen
+	const droppedResources = this.room.find(FIND_DROPPED_RESOURCES, {
+		filter: (resource: Resource) => resource.resourceType === resourceType,
+	})
+	resourceSources.dropped.push(...droppedResources);
+
+	const remoteRoomNames = this.room.colonieMemory.remotes;
+
+	remoteRoomNames.forEach((roomName: string) => {
+		const room = Game.rooms[roomName];
+		if (room) {
+			const droppedResources = room.find(FIND_DROPPED_RESOURCES, {
+				filter: (resource: Resource) => resource.resourceType === resourceType,
+			}).sort((a: Resource, b: Resource) => b.amount - a.amount);
+
+			if (droppedResources && droppedResources.length >= 1) {
+				resourceSources.dropped.push(droppedResources[0]);
+			}
+
+		}
+	}); */
+
+	resourceSources.dropped.sort((a: Resource, b: Resource) => b.amount - a.amount);
+
+	// Suche nach Containern
+	const containers = this.room.find(FIND_STRUCTURES, {
+		filter: (structure: Structure) => structure.structureType === STRUCTURE_CONTAINER &&
+			(!this.target || this.target == null || (this.target && this.target != null && this.target.structureType && this.target.structureType !== STRUCTURE_CONTAINER && this.target.structureType !== STRUCTURE_STORAGE)) &&
+			(structure as StructureContainer).store.getUsedCapacity() > 0,
+	});
+	resourceSources.container.push(...containers);
+
+	// Suche nach der Storage
+	if (this.room.storage && this.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > 0 &&
+		(!this.target || this.target === null || (!this.target.structureType || this.target.structureType !== STRUCTURE_CONTAINER))) {
+		resourceSources.storage.push(this.room.storage);
+	}
+
 	const sequence: string[] = [];
 	let i = 0;
 
@@ -136,8 +235,38 @@ Creep.prototype.loadResource = function loadResource(resourceType = RESOURCE_ENE
 			else
 				sequence.push('container', 'dropped', 'storage');
 
+			if (this.memory.energyTarget && this.memory.energyTarget !== null) {
+				const source = Game.getObjectById(this.memory.energyTarget);
+
+				if (source) {
+					if (source instanceof Resource) {
+						this.pickupResource(source);
+					} else {
+						this.withdrawFromTarget(source, resourceType);
+					}
+				}
+
+				return this.memory.energyTarget;
+			}
+
 			for (i = 0; i < sequence.length; i++) {
-				const source = resourceSources[sequence[i]].value();
+				if (resourceSources[sequence[i]].length <= 0) {
+					continue;
+				}
+				let source = resourceSources[sequence[i]][0];
+
+				if (sequence[i] === 'dropped') {
+
+					for (let j = 0; j < resourceSources[sequence[i]].length; j++) {
+						if (energyTargetCounted[resourceSources[sequence[i]][j].id] < 2 || !energyTargetCounted[resourceSources[sequence[i]][j].id]) {
+							source = resourceSources[sequence[i]][j];
+							break;
+						}
+					}
+				}
+
+				//const source = resourceSources[sequence[i]][0];
+
 				if (source) {
 					this.memory.energyTarget = source.id;
 					if (sequence[i] === 'dropped') {
@@ -153,8 +282,13 @@ Creep.prototype.loadResource = function loadResource(resourceType = RESOURCE_ENE
 		case 'worker':
 			sequence.push('storage', 'container', 'dropped');
 			for (i = 0; i < sequence.length; i++) {
-				const source = resourceSources[sequence[i]].value();
+				if (resourceSources[sequence[i]].length <= 0) {
+					continue;
+				}
+
+				const source = resourceSources[sequence[i]][0];
 				if (source) {
+					this.memory.energyTarget = source.id;
 					switch (sequence[i]) {
 						case 'dropped':
 							this.pickupResource(source);
@@ -179,5 +313,5 @@ Creep.prototype.travelTo = function (destination: RoomPosition | { pos: RoomPosi
 }
 
 Creep.prototype.aboutToDie = function () {
-	return this.ticksToLivenumber === 1;
+	return this.ticksToLive === 1;
 }

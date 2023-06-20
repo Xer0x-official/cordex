@@ -1,6 +1,8 @@
 
 import {Miner} from "./Miner";
 import { Transporter } from "./Transporter";
+import { Worker } from "./Worker";
+import { Scout } from "./Scout";
 
 export class CreepLogic implements ICreepClass {
 	creep: Creep;
@@ -25,12 +27,12 @@ export class CreepLogic implements ICreepClass {
 			case "transporter":
 				new Transporter(this.creep, this.memory);
 				break;
-/* 			case "scout":
+			case "scout":
 				new Scout(this.creep, this.memory);
 				break;
 			case "worker":
-				worker(this.creep);
-				break; */
+				new Worker(this.creep, this.memory);
+				break;
 
 			default:
 				this.creep.suicide();
@@ -40,7 +42,12 @@ export class CreepLogic implements ICreepClass {
 	}
 
 	_updateMemory() {
+		if (this.creep.memory._trav) {
+			this.memory._trav = this.creep.memory._trav;
+		}
+
 		this.memory.routing = this.creep.memory.routing;
+		this.memory.energyTarget = this.creep.memory.energyTarget;
 		this.creep.memory = this.memory;
 	}
 }

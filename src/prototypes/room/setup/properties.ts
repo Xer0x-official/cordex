@@ -1,15 +1,18 @@
 
-export function setupProperties(room: Room) {
+export function setupProperties(room: Room, remote: boolean) {
 	_.forEach(room.find(FIND_SOURCES), function (source) {
-		room.colonieMemory.resources.energy[source.id] = null;
-		room.colonieMemory.stats.resourceCount++;
+		room.colonieMemory.resources.energy[source.id] = {pos: source.pos, miner: null};
+		room.stats.resourceCount++;
 	});
 
 	_.forEach(room.find(FIND_MINERALS), function (source) {
-		room.colonieMemory.resources.minerals[source.id] = null;
+		room.colonieMemory.resources.minerals[source.id] = {pos: source.pos, miner: null};
 	});
 
-	_.forEach(_.filter(Game.spawns, spawn => spawn.room.name === room.name), spawn => room.colonieMemory.spawns.push(spawn.id));
 
-	room.colonieMemory.myStructurs.push(room.colonieMemory.spawns[0]);
+	if (!remote) {
+		_.forEach(_.filter(Game.spawns, spawn => spawn.room.name === room.name), spawn => room.colonieMemory.spawns.push(spawn.id));
+		room.colonieMemory.myStructurs.push(room.colonieMemory.spawns[0]);
+	}
+
 }

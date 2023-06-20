@@ -6,16 +6,7 @@ Object.defineProperty(Room.prototype, 'buildingMatrix', {
 		return PathFinder.CostMatrix.deserialize(this.colonieMemory.buildingMatrix);
 	},
 	set: function (value: CostMatrix) {
-		if (value !== undefined) {
-			if (value === null) {
-				this.colonieMemory.buildingMatrix = undefined;
-				return 1;
-			} else {
-				this.colonieMemory.buildingMatrix = value.serialize();
-				return 0;
-			}
-		}
-		return 1;
+		this.colonieMemory.buildingMatrix = value.serialize();
 	},
 	enumerable: true,
 	configurable: true
@@ -26,7 +17,7 @@ Object.defineProperty(Room.prototype, 'colonieMemory', {
 		const key:string = this.memory.origin || this.name;
 		const memory = Memory.colonies[key];
 
-		return memory !== undefined ? memory : undefined;
+		return memory;
 	},
 	set: function (value) {
 		return null;
@@ -37,6 +28,12 @@ Object.defineProperty(Room.prototype, 'colonieMemory', {
 
 Object.defineProperty(Room.prototype, 'buildQueue', {
 	get: function (): colonieQueueElement[] {
+		try {
+			return this.colonieMemory.queues.build;
+		} catch (err) {
+			console.log(this.name, this.colonieMemory, this.memory.origin);
+			console.log(err)
+		}
 		return this.colonieMemory.queues.build;
 	},
 	set: function (value: colonieQueueElement[]) {
@@ -106,8 +103,8 @@ Object.defineProperty(Room.prototype, 'baseExtensions', {
 	get: function (): IBaseExtensions {
 		return this.colonieMemory.baseExtensions;
 	},
-	set: function (value) {
-		return null
+	set: function (value: IBaseExtensions) {
+		return this.colonieMemory.baseExtensions = value;
 	},
 	enumerable: true,
 	configurable: true
