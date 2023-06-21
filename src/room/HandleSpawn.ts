@@ -53,6 +53,7 @@ export class HandleSpawn {
 				bodyParts: [MOVE, MOVE, MOVE], name: `scout_W5N8_${Game.time}`, memory: {
 					job: "scout",
 					working: false,
+					cost: 150,
 					target: null,
 					origin: this.room.name,
 					task: '',
@@ -74,6 +75,7 @@ export class HandleSpawn {
 					bodyParts: [WORK, MOVE], name: initMinerName, memory: {
 						job: "miner",
 						working: false,
+						cost: 150,
 						target: null,
 						origin: this.room.name,
 						task: '',
@@ -87,6 +89,7 @@ export class HandleSpawn {
 					bodyParts: [CARRY, CARRY, MOVE], name: initTransporterName, memory: {
 						job: "transporter",
 						working: false,
+						cost: 150,
 						target: null,
 						origin: this.room.name,
 						task: '',
@@ -111,7 +114,7 @@ export class HandleSpawn {
 
 		if (transporter <= 0) {
 			spawnPriorityList.push(['transporter', ''], ['miner', ''], ['worker', '']);
-		} else if (transporter <= Memory.settings.transporterPerSource * 2) {
+		} else if (transporter <= Memory.settings.transporterPerSource * 4) {
 			spawnPriorityList.push(['miner', ''], ['transporter', ''], ['worker', '']);
 		} else {
 			spawnPriorityList.push(['miner', ''], ['worker', ''], ['transporter', '']);

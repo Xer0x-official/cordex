@@ -117,6 +117,7 @@ export class Worker implements ICreepClass {
 
 		if (!this.creep.target || this.creep.target === null) {
 			if (!this.creep.room.getBuildQueueTask(this.creep.getTask()) || this.creep.room.getBuildQueueTask(this.creep.getTask()) == null) {
+				this.creep.target = null;
 				return;
 			}
 
@@ -142,7 +143,6 @@ export class Worker implements ICreepClass {
 			targetObject = this.creep.target;
 		} else {
 			console.log(`${this.creep.target} ist keine RoomPosition oder Id`);
-			return;
 		}
 
 		if (!targetObject || targetObject == null) {

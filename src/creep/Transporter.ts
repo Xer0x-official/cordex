@@ -58,7 +58,7 @@ export class Transporter implements ICreepClass {
 		} */
 
 
-		if (!this.loaded) {
+		if (!this.loaded && this.memory.target && this.memory.target !== null) {
 			this.memory.energyTarget = null;
 			this.creep.memory.energyTarget = null;
 			this.resourcesAround = this.creep.room.lookForAtArea(LOOK_RESOURCES, this.creep.pos.y - 1, this.creep.pos.x - 1, this.creep.pos.y + 1, this.creep.pos.x + 1, true).map(result => result.resource);;
@@ -174,13 +174,13 @@ export class Transporter implements ICreepClass {
 			}
 		}
 		const creepCapacity = this.creep.store.getUsedCapacity(RESOURCE_ENERGY);
-		//let capacityGreaterThanTarget = creepCapacity >= this.targetObject.store.getFreeCapacity(RESOURCE_ENERGY);
-		//let isTargetExtentionOrCreep = this.targetObject.structureType === STRUCTURE_EXTENSION || this.targetObject.body;
+		const capacityGreaterThanTarget = creepCapacity >= this.targetObject.store.getFreeCapacity(RESOURCE_ENERGY);
+		//const isTargetExtentionOrCreep = this.targetObject.structureType === STRUCTURE_EXTENSION || this.targetObject.body;
 		const getResourcePotential = Math.min(this.creep.store.getFreeCapacity(), energyTargetCapacity);
 
 		//console.log(this.energyTarget);
 
-		if ((creepCapacity != 0 && getResourcePotential != 0) && creepCapacity >= getResourcePotential) {
+		if ((creepCapacity != 0 && getResourcePotential != 0) && (creepCapacity >= getResourcePotential || capacityGreaterThanTarget)) {
 			this.loaded = true;
 			this.memory.energyTarget = null;
 			return;
