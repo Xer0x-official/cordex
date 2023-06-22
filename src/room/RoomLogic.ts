@@ -37,7 +37,8 @@ export class RoomLogic implements IRoomLogic, IBaseRoomClass {
 
 		this.room.colonieMemory.spawns.forEach(spawnId => {
 			const spawn = Game.getObjectById(spawnId);
-			const freePositions = spawn?.pos.getFreePositions();
+			const freePositions = spawn?.pos.getFreePositions(1, false);
+
 			if (spawn && freePositions && freePositions.length <= 0) {
 				spawn.pos.pushCreepsAway();
 			}

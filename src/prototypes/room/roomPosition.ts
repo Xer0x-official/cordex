@@ -35,7 +35,7 @@ RoomPosition.prototype.getNearbyPositions = function (range: number = 1) {
 	return positions;
 }
 
-RoomPosition.prototype.getFreePositions = function (range: number = 1) {
+RoomPosition.prototype.getFreePositions = function (range: number = 1, ignoreCreeps: boolean = true) {
 	let positions: RoomPosition[] = this.getNearbyPositions(range);
 	const terrain = Game.map.getRoomTerrain(this.roomName);
 
@@ -44,9 +44,17 @@ RoomPosition.prototype.getFreePositions = function (range: number = 1) {
 	});
 
 	positions = _.remove(positions, (position: RoomPosition) => {
-		return _.remove(position.lookFor(LOOK_STRUCTURES), (structure: Structure) => {
+		let structuresAtPosition = 0;
+		let creepsAtPosition = 0;
+		structuresAtPosition = _.remove(position.lookFor(LOOK_STRUCTURES), (structure: Structure) => {
 			return !structure.isWalkable();
-		}).length <= 0;
+		}).length;
+
+		if (!ignoreCreeps) {
+			creepsAtPosition = position.lookFor(LOOK_CREEPS).length;
+		}
+
+		return structuresAtPosition <= 0 && creepsAtPosition <= 0;
 	});
 
 	return positions;

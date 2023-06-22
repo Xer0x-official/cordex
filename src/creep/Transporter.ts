@@ -9,10 +9,11 @@ export class Transporter implements ICreepClass {
 	targetObject: any;
 	isCreepWaiting: boolean;
 	resourcesAround: Resource[];
-	energyTarget: StructureWithStorage | Resource | null;
+	energyTarget: Id<StructureWithStorage> | Id<Resource<ResourceConstant>> | null | undefined;
 
 	constructor(creep: Creep, memory: CreepMemory) {
 		this.creep = creep;
+		this.name = this.creep.name;
 		this.memory = memory;
 		this.loaded = false;
 		/* this.spawn = Game.getObjectById(this.creep.room.colonieMemory.spawns[0] as Id<StructureSpawn>) as StructureSpawn;
@@ -24,19 +25,32 @@ export class Transporter implements ICreepClass {
 		]; */
 
 		this.targetObject = null;
-		this.energyTarget = null;
+		let energyTargetTest = null;
+		if (this.memory.energyTarget && this.memory.energyTarget !== null) {
+			let energyTargetTest = Game.getObjectById(this.memory.energyTarget)
+		}
+
+		if (energyTargetTest !== null) {
+			this.energyTarget = this.memory.energyTarget;
+		} else {
+			this.energyTarget = null;
+		}
+
 
 		if (typeof this.creep.target === 'string') {
 			this.targetObject = Game.getObjectById(this.creep.target);
 		}
 
-		if (typeof this.memory.energyTarget === 'string') {
+		/* if (typeof this.memory.energyTarget === 'string') {
 			this.energyTarget = Game.getObjectById(this.memory.energyTarget);
-		}
+		} */
 
 		this.isCreepWaiting = this.memory.task === 'waiting';
 		this.resourcesAround = [];
 		this._run();
+	}
+
+	_updateMemory() {
 	}
 
 	_run() {
@@ -45,7 +59,9 @@ export class Transporter implements ICreepClass {
 		if (this.targetObject && this.creep.target !== null) {
 			let handelReturn = this.handelTarget();
 
-			if (handelReturn === 0) {
+			if (handelReturn === OK) {
+				this.memory.energyTarget = null;
+				this.creep.memory.energyTarget = null;
 				return;
 			}
 
@@ -53,14 +69,15 @@ export class Transporter implements ICreepClass {
 			this.memory.target = this.getTarget();
 		}
 
+
+
 		/* if (this.isCreepWaiting) {
 			this.isWaiting();
 		} */
 
-
 		if (!this.loaded && this.memory.target && this.memory.target !== null) {
-			this.memory.energyTarget = null;
-			this.creep.memory.energyTarget = null;
+			/* this.memory.energyTarget = null;
+			this.creep.memory.energyTarget = null; */
 			this.resourcesAround = this.creep.room.lookForAtArea(LOOK_RESOURCES, this.creep.pos.y - 1, this.creep.pos.x - 1, this.creep.pos.y + 1, this.creep.pos.x + 1, true).map(result => result.resource);;
 
 			for (let i = 0; i < this.resourcesAround.length; i++) {
@@ -70,11 +87,12 @@ export class Transporter implements ICreepClass {
 			let loadResourceResult = this.creep.loadResource();
 
 			if (loadResourceResult && loadResourceResult !== null) {
-				this.memory.energyTarget = loadResourceResult.id;
+
+				this.memory.energyTarget = loadResourceResult;
+				this.creep.memory.energyTarget = loadResourceResult;
 			}
 
 		}
-
 	}
 
 	handelTarget() {
@@ -112,7 +130,7 @@ export class Transporter implements ICreepClass {
 	}
 
 	getTarget() {
-		const sequence = [STRUCTURE_EXTENSION, STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_CONTAINER, STRUCTURE_LINK, FIND_MY_CREEPS, STRUCTURE_STORAGE];
+		const sequence = [STRUCTURE_EXTENSION, STRUCTURE_SPAWN, STRUCTURE_TOWER, FIND_MY_CREEPS, STRUCTURE_CONTAINER, STRUCTURE_LINK, STRUCTURE_STORAGE];
 		let targetWithoutEnoughEnergy: (StructureWithStorage | AnyCreep)[] = [];
 		const originRoom = Game.rooms[this.creep.memory.origin];
 
@@ -120,13 +138,27 @@ export class Transporter implements ICreepClass {
 			if (i === 5) {
 				targetWithoutEnoughEnergy = _.filter(originRoom.find(FIND_MY_CREEPS), (target) => !target.spawning && target.memory.job === 'worker' && target.store.getFreeCapacity(RESOURCE_ENERGY) > 0);
 			} else {
-				targetWithoutEnoughEnergy = _.filter(originRoom.find(FIND_STRUCTURES), (target): target is StructureWithStorage =>
+				targetWithoutEnoughEnergy = [];
+				_.forEach(this.creep.room.myStructurs, (structureId: Id<Structure>) => {
+					const structure = Game.getObjectById(structureId);
+
+					if (structure && structure !== null && structure.structureType === sequence[i] && (structure as StructureWithStorage).store) {
+						if ((sequence[i] === STRUCTURE_TOWER && (structure as StructureWithStorage).store.getUsedCapacity(RESOURCE_ENERGY) <= (structure as StructureWithStorage).store.getCapacity(RESOURCE_ENERGY) * 0.5) ||
+						(structure.structureType !== STRUCTURE_TOWER && (structure as StructureWithStorage).store.getFreeCapacity(RESOURCE_ENERGY) > 0)) {
+							targetWithoutEnoughEnergy.push(structure as StructureWithStorage);
+						}
+
+					}
+				});
+/*
+				_.filter(this.creep.room.myStructurs, (target: id<Structure>) =>
+					const structure = Game.getObjectById(target);
 					target.structureType === sequence[i] && target.store !== null &&
 					(
 						(target.structureType === STRUCTURE_TOWER && target.store.getUsedCapacity(RESOURCE_ENERGY) <= target.store.getCapacity(RESOURCE_ENERGY) * 0.5) ||
 						(target.structureType !== STRUCTURE_TOWER && target.store.getFreeCapacity(RESOURCE_ENERGY) > 0)
 					)
-				) as StructureWithStorage[];
+				); */
 			}
 
 			if (targetWithoutEnoughEnergy.length > 0) {
@@ -167,11 +199,15 @@ export class Transporter implements ICreepClass {
 		let energyTargetCapacity = 0;
 
 		if (this.energyTarget) {
-			if (this.energyTarget instanceof Structure) {
-				energyTargetCapacity = this.energyTarget.store.getUsedCapacity(RESOURCE_ENERGY);
-			} else {
-				energyTargetCapacity = this.energyTarget.amount;
+			let energyTarget = Game.getObjectById(this.energyTarget);
+			if (energyTarget) {
+				if (energyTarget instanceof Structure && energyTarget.store) {
+					energyTargetCapacity = energyTarget.store.getUsedCapacity(RESOURCE_ENERGY);
+				} else if (energyTarget instanceof Resource && energyTarget.amount) {
+					energyTargetCapacity = energyTarget.amount;
+				}
 			}
+
 		}
 		const creepCapacity = this.creep.store.getUsedCapacity(RESOURCE_ENERGY);
 		const capacityGreaterThanTarget = creepCapacity >= this.targetObject.store.getFreeCapacity(RESOURCE_ENERGY);

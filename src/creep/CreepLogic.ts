@@ -1,7 +1,8 @@
 
 import {Miner} from "./Miner";
 import { Transporter } from "./Transporter";
-import { Worker } from "./Worker";
+//import { Worker } from "./Worker";
+import { Worker } from "./worker/Workerv3";
 import { Scout } from "./Scout";
 
 export class CreepLogic implements ICreepClass {

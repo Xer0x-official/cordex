@@ -101,16 +101,15 @@ Creep.prototype.getCountOfBodyPart = function getCountOfBodyPart(partType: BodyP
  * @default {RESSOURCE_ENERGY} resourceType
  * @returns {boolean} is creep.store.getFreeCapacity() == 0
  */
-Creep.prototype.loadResource = function loadResource(resourceType = RESOURCE_ENERGY, lookInRoom: boolean = false): Resource | StructureContainer | StructureStorage | null {
+Creep.prototype.loadResource = function loadResource(resourceType = RESOURCE_ENERGY, lookInRoom: boolean = false): Id<Resource> | Id<StructureContainer> | Id<StructureStorage> | null {
 	const isCreepFull = this.store.getFreeCapacity() === 0;
 	const colonieMemory = this.room.colonieMemory;
 
 	if (isCreepFull || !colonieMemory) {
-		return null;
+		return this.memory.energyTarget;
 	}
 
 	const energyTargetCounted = _.countBy(Game.creeps, (creep) => creep.memory.energyTarget || 'undefined');
-
 	const resourceSources: {
 		[name: string]: any;
 		dropped: Resource[];
@@ -122,15 +121,28 @@ Creep.prototype.loadResource = function loadResource(resourceType = RESOURCE_ENE
 		storage: [],
 	};
 
+	let resourcesInOrigin: Resource[] = [];
+	let resourcesInRemotes: Resource[] = [];
+
 	Object.keys(colonieMemory.resources.dropped.energy).forEach((resourceId) => {
 		let resource = Game.getObjectById(resourceId as Id<Resource>);
 
-		if (resource && (lookInRoom && resource.pos.roomName === this.memory.origin || !lookInRoom)) {
-			resourceSources.dropped.push(resource)
+		if (resource) {
+			if (resource.pos.roomName === this.memory.origin) {
+				resourcesInOrigin.push(resource);
+			} else {
+				resourcesInRemotes.push(resource);
+			}
 		}
 	})
+	resourcesInOrigin.sort((a: Resource, b: Resource) => b.amount - a.amount);
+	resourcesInRemotes.sort((a: Resource, b: Resource) => b.amount - a.amount);
 
-	resourceSources.dropped.sort((a: Resource, b: Resource) => b.amount - a.amount);
+	resourceSources.dropped = resourcesInOrigin;
+
+	if(!lookInRoom) {
+		resourceSources.dropped.concat(resourcesInRemotes);
+	}
 
 	// Suche nach Containern
 	const containers = this.room.find(FIND_STRUCTURES, {
@@ -156,7 +168,7 @@ Creep.prototype.loadResource = function loadResource(resourceType = RESOURCE_ENE
 			else
 				sequence.push('container', 'dropped', 'storage');
 
-			if (this.memory.energyTarget && this.memory.energyTarget !== null) {
+			if (this.memory.energyTarget && this.memory.energyTarget !== null && energyTargetCounted[this.memory.energyTarget] <= Memory.settings.transporterPerSource) {
 				const source = Game.getObjectById(this.memory.energyTarget);
 
 				if (source) {
@@ -170,32 +182,35 @@ Creep.prototype.loadResource = function loadResource(resourceType = RESOURCE_ENE
 				return this.memory.energyTarget;
 			}
 
-			for (i = 0; i < sequence.length; i++) {
+			sources: for (i = 0; i < sequence.length; i++) {
 				if (resourceSources[sequence[i]].length <= 0) {
 					continue;
 				}
-				let source = resourceSources[sequence[i]][0];
 
-				if (sequence[i] === 'dropped') {
+				for (let j = 0; j < resourceSources[sequence[i]].length; j++) {
+					const source = resourceSources[sequence[i]][j];
 
-					for (let j = 0; j < resourceSources[sequence[i]].length; j++) {
-						if (energyTargetCounted[resourceSources[sequence[i]][j].id] < 2 || !energyTargetCounted[resourceSources[sequence[i]][j].id]) {
-							source = resourceSources[sequence[i]][j];
-							break;
+					if (sequence[i] === 'dropped' && source && energyTargetCounted[source.id] > Memory.settings.transporterPerSource) {
+						continue;
+						/* for (let j = 0; j < resourceSources[sequence[i]].length; j++) {
+							if (energyTargetCounted[resourceSources[sequence[i]][j].id] < 2) {
+								source = resourceSources[sequence[i]][j];
+							}
+						} */
+					}
+
+					//const source = resourceSources[sequence[i]][0];
+
+					if (source) {
+						this.memory.energyTarget = source.id;
+
+						if (sequence[i] === 'dropped') {
+							this.pickupResource(source);
+						} else {
+							this.withdrawFromTarget(source, resourceType);
 						}
+						break sources;
 					}
-				}
-
-				//const source = resourceSources[sequence[i]][0];
-
-				if (source) {
-					this.memory.energyTarget = source.id;
-					if (sequence[i] === 'dropped') {
-						this.pickupResource(source);
-					} else {
-						this.withdrawFromTarget(source, resourceType);
-					}
-					break;
 				}
 			}
 			break;
@@ -235,4 +250,113 @@ Creep.prototype.travelTo = function (destination: RoomPosition | { pos: RoomPosi
 
 Creep.prototype.aboutToDie = function () {
 	return this.ticksToLive === 1;
+}
+
+
+/**
+ *
+ * @param {*} resourceType
+ * @default {RESSOURCE_ENERGY} resourceType
+ * @returns {boolean} is creep.store.getFreeCapacity() == 0
+ */
+Creep.prototype.getResourceTarget = function getResourceTarget(resourceType = RESOURCE_ENERGY, lookInRoom: boolean = false): boolean {
+	const colonieMemory = this.room.colonieMemory;
+
+	if (!colonieMemory) {
+		return false;
+	}
+
+	const energyTargetCounted = _.countBy(Game.creeps, (creep) => creep.memory.energyTarget || 'undefined');
+	const resourceSources: {
+		[name: string]: any;
+		dropped: Resource[];
+		container: StructureContainer[];
+		storage: StructureStorage[];
+	} = {
+		dropped: [],
+		container: [],
+		storage: [],
+	};
+
+	let droppedResources = Object.keys(colonieMemory.resources.dropped.energy)
+    .map((resourceId) => Game.getObjectById(resourceId as Id<Resource>))
+    .filter((resource): resource is Resource => resource !== null);
+
+	let resourcesInOrigin = droppedResources.filter(resource => resource.pos.roomName === this.memory.origin);
+	let resourcesInRemotes = droppedResources.filter(resource => resource.pos.roomName !== this.memory.origin);
+
+	resourcesInOrigin.sort((a: Resource, b: Resource) => b.amount - a.amount);
+	resourcesInRemotes.sort((a: Resource, b: Resource) => b.amount - a.amount);
+
+	resourceSources.dropped = lookInRoom ? resourcesInOrigin : resourcesInOrigin.concat(resourcesInRemotes);
+
+	// Suche nach Containern
+	const containers = this.room.find(FIND_STRUCTURES, {
+		filter: (structure: Structure) => structure.structureType === STRUCTURE_CONTAINER &&
+			(!this.target || this.target == null || (this.target && this.target != null && this.target.structureType && this.target.structureType !== STRUCTURE_CONTAINER && this.target.structureType !== STRUCTURE_STORAGE)) &&
+			(structure as StructureContainer).store.getUsedCapacity() > 0,
+	});
+	resourceSources.container.push(...containers);
+
+	// Suche nach der Storage
+	if (this.room.storage && this.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > 0 &&
+		(!this.target || this.target === null || (!this.target.structureType || this.target.structureType !== STRUCTURE_CONTAINER))) {
+		resourceSources.storage.push(this.room.storage);
+	}
+
+	const sequence: string[] = [];
+	let source: any = {};
+	let i = 0;
+
+	switch (this.memory.job) {
+		case 'transporter':
+			if (this.target && this.target.structureType && this.target.structureType != null && (this.target.structureType == STRUCTURE_EXTENSION || this.target.structureType == STRUCTURE_SPAWN))
+				sequence.push('container', 'storage', 'dropped');
+			else
+				sequence.push('container', 'dropped', 'storage');
+
+			if (this.memory.energyTarget && this.memory.energyTarget !== null && energyTargetCounted[this.memory.energyTarget] <= Memory.settings.transporterPerSource) {
+				source = Game.getObjectById(this.memory.energyTarget);
+				break;
+			}
+
+			sources: for (i = 0; i < sequence.length; i++) {
+				if (resourceSources[sequence[i]].length <= 0) {
+					continue;
+				}
+
+				for (let j = 0; j < resourceSources[sequence[i]].length; j++) {
+					source = resourceSources[sequence[i]][j];
+
+					if (sequence[i] === 'dropped' && source && energyTargetCounted[source.id] > Memory.settings.transporterPerSource) {
+						continue;
+					}
+
+					if (source) {
+						break sources;
+					}
+				}
+			}
+			break;
+
+		case 'worker':
+			sequence.push('storage', 'container', 'dropped');
+			for (i = 0; i < sequence.length; i++) {
+				if (resourceSources[sequence[i]].length <= 0) {
+					continue;
+				}
+				source = resourceSources[sequence[i]][0];
+				if (source) {
+					break;
+				}
+			}
+			break;
+	}
+
+	if (source && source !== null) {
+		this.memory.energyTarget = source.id;
+		return true;
+	}
+
+	return false;
 }

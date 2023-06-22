@@ -125,6 +125,7 @@ interface Room {
 	buildingMatrix: CostMatrix;
 	isSetup: boolean;
 	baseExtensions: IBaseExtensions;
+	myStructurs: Id<Structure>[];
 
 	setupRoom: (isRemote?: boolean, origin?: string) => void;
 	getMineral: () => any;
@@ -149,7 +150,7 @@ interface Structure {
 }
 
 interface RoomPosition {
-	getFreePositions: (range?: number) => RoomPosition[];
+	getFreePositions: (range?: number, ignoreCreeps?: boolean) => RoomPosition[];
 	getNearbyPositions: (range?: number) => RoomPosition[];
 	isNearEdge: () => any;
 	isEdge: () => any;
@@ -157,6 +158,8 @@ interface RoomPosition {
 }
 
 interface Creep {
+	getResourceTarget: (resourceType?: "energy", lookInRoom?: boolean) => boolean;
+	loadResource: (resourceType?: "energy", lookInRoom?: boolean) => Id<Resource<ResourceConstant>> | Id<StructureStorage> | Id<StructureContainer> | null;
 	target: Id<Source> | Id<Mineral> | Id<AnyStructure> | Id<AnyCreep> | Id<Resource> | RoomPosition | null;
 
 	hasReachedDestination: (target: any) => boolean;
@@ -187,14 +190,13 @@ interface Creep {
 	getJob: () => string;
 	clearTarget: () => number;
 	getCountOfBodyPart: (partType: BodyPartConstant) => number;
-	loadResource: (resourceType?: "energy", lookInRoom?: boolean) => Resource<ResourceConstant> | StructureStorage | StructureContainer | null;
 }
 
 interface CreepMemory {
 	[name: string]: any;
 	job: string,
 	working: boolean,
-	target: Id<Source> | Id<Mineral> | Id<AnyStructure> | Id<AnyCreep> | RoomPosition | null,
+	target: Id<Source> | Id<Mineral> | Id<AnyStructure> | Id<AnyCreep> | Id<ConstructionSite>  | null,
 	task: string,
 	origin: string,
 	lastPositions: RoomPosition[],

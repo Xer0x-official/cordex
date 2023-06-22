@@ -42,6 +42,7 @@ export class Worker implements ICreepClass {
 			this.buildBunker();
 		}
 
+		this.memory.target = this.creep.memory.target;
 	}
 
 	updateBuildQueueCost() {
@@ -60,7 +61,6 @@ export class Worker implements ICreepClass {
 			} else {
 				(this.creep.room.buildQueue[i].cost as number) -= this.creep.store.getUsedCapacity(RESOURCE_ENERGY) - (this.creep.store.getUsedCapacity(RESOURCE_ENERGY) % this.creep.getCountOfBodyPart(WORK));
 			}
-
 		}
 	}
 
@@ -110,29 +110,46 @@ export class Worker implements ICreepClass {
 		let workingStructures: buildBlueprintBuildElement[] = [];
 		let targetObject;
 
-		if (this.creep.store.getUsedCapacity(RESOURCE_ENERGY) == 0) {
-			this.creep.loadResource(RESOURCE_ENERGY, true);
+		if (this.creep.store.getUsedCapacity(RESOURCE_ENERGY) === 0 && this.creep.target && this.creep.target !== null) {
+			if (this.creep.room.name !== this.creep.memory.origin) {
+				this.creep.loadResource(RESOURCE_ENERGY);
+			} else {
+				this.creep.loadResource(RESOURCE_ENERGY, true);
+			}
 			return;
 		}
 
 		if (!this.creep.target || this.creep.target === null) {
 			if (!this.creep.room.getBuildQueueTask(this.creep.getTask()) || this.creep.room.getBuildQueueTask(this.creep.getTask()) == null) {
-				this.creep.target = null;
+				this.creep.memory.task = '';
 				return;
 			}
 
 			taskStructures = this.creep.room.getBuildQueueTask(this.creep.getTask()).structures;
 
 			for (i = 0; i < taskStructures.length; i++) {
-				taskPositions.push(this.creep.room.getPositionAt(taskStructures[i].pos.x, taskStructures[i].pos.y) as RoomPosition);
+				const lookRoom = Game.rooms[taskStructures[i].pos.roomName];
+				if (!lookRoom) {
+					continue;
+				}
+				const positionAtTarget = lookRoom.getPositionAt(taskStructures[i].pos.x, taskStructures[i].pos.y) as RoomPosition;
+
+				if (positionAtTarget !== null && taskStructures[i].pos.roomName === this.creep.room.name) {
+					taskPositions.push(positionAtTarget);
+				}
+
 			}
 
-			target = this.creep.pos.findClosestByPath(taskPositions);
-			this.creep.target = target;
+			if (taskPositions.length > 0) {
+				target = this.creep.pos.findClosestByPath(taskPositions);
+				// console.log(this.name, target, Object.entries(taskPositions));
+				this.creep.target = target;
+			}
 		}
 
-		if (this.creep.buildTarget() == OK) {
+		if (this.creep.buildTarget() === OK) {
 			this.updateBuildQueueCost();
+			return;
 		}
 		//this.updateBuildQueueStructures();
 
@@ -142,21 +159,21 @@ export class Worker implements ICreepClass {
 		} else if (this.creep.target instanceof RoomPosition) {
 			targetObject = this.creep.target;
 		} else {
-			console.log(`${this.creep.target} ist keine RoomPosition oder Id`);
+			console.log(`${targetObject} ist keine RoomPosition oder Id`);
 		}
 
-		if (!targetObject || targetObject == null) {
+		if (!targetObject || targetObject === null) {
 			return;
 		}
 
 		outerLoop: for (i = 0; i < this.creep.room.buildQueue.length; i++) {
-			if (this.creep.room.buildQueue[i].name != this.creep.getTask()) {
+			if (this.creep.room.buildQueue[i].name !== this.creep.getTask()) {
 				continue;
 			}
 
 			workingStructures = this.creep.room.buildQueue[i].structures as buildBlueprintBuildElement[];
 			for (j = 0; j < workingStructures.length; j++) {
-				if (this.creep.target && this.creep.target != null) {
+				if (this.creep.target && this.creep.target !== null) {
 					if ((targetObject instanceof RoomPosition ? targetObject : targetObject.pos) === workingStructures[j].pos) {
 						break outerLoop;
 					}

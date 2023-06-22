@@ -109,3 +109,14 @@ Object.defineProperty(Room.prototype, 'baseExtensions', {
 	enumerable: true,
 	configurable: true
 });
+
+Object.defineProperty(Room.prototype, 'myStructurs', {
+	get: function (): Id<Structure>[] {
+		return this.colonieMemory.myStructurs;
+	},
+	set: function (value: Id<Structure>[]) {
+		return this.colonieMemory.myStructurs = value;
+	},
+	enumerable: true,
+	configurable: true
+});

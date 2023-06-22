@@ -125,13 +125,13 @@ export class RoomBuilder implements IBaseRoomClass {
 		for (let i = 0; i < this.room.buildQueue.length; i++) {
 			_.remove((this.room.buildQueue[i].structures as buildBlueprintBuildElement[]), (structure) => {
 				const lookRoom = Game.rooms[structure.pos.roomName];
-				if (structure.type && lookRoom.lookForAt(LOOK_CONSTRUCTION_SITES, structure.pos).length <= 0) {
-					// console.log(`${structure.type} (${Object.entries(structure.pos)}): wird gelöscht`)
-				}
+				/* if (lookRoom && structure.type && lookRoom.lookForAt(LOOK_CONSTRUCTION_SITES, structure.pos).length <= 0) {
+					console.log(`${structure.type} (${Object.entries(structure.pos)}): wird gelöscht`)
+				} */
 				return !lookRoom || (structure.type && lookRoom.lookForAt(LOOK_CONSTRUCTION_SITES, structure.pos.x, structure.pos.y).length <= 0);
 			});
 
-			console.log((this.room.buildQueue[i].structures as buildBlueprintBuildElement[]).length);
+			// console.log((this.room.buildQueue[i].structures as buildBlueprintBuildElement[]).length);
 
 			if (this.room.buildQueue[i].structures && (this.room.buildQueue[i].cost as number) <= 0 || (this.room.buildQueue[i].structures as buildBlueprintBuildElement[]).length <= 0) {
 				// const creepsWithTask = _.filter(Game.creeps, creep => creep.memory.task != null && creep.memory.task == this.room.buildQueue[i].name);
