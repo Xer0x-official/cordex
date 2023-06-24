@@ -21,11 +21,11 @@ RoomPosition.prototype.isNearEdge = function () {
 RoomPosition.prototype.getNearbyPositions = function (range: number = 1) {
 	let positions: RoomPosition[] = [];
 	let x = 0, y = 0;
-	const startX = this.x - 1 || 1;
-	const startY = this.y - 1 || 1;
+	const startX = this.x - range || range;
+	const startY = this.y - range || range;
 
-	for (x = startX; x <= this.x + 1 && x < 49; x++) {
-		for (y = startY; y <= this.y + 1 && y < 49; y++) {
+	for (x = startX; x <= this.x + range && x < 49; x++) {
+		for (y = startY; y <= this.y + range && y < 49; y++) {
 			if (x !== this.x || y !== this.y) {
 				positions.push(new RoomPosition(x, y, this.roomName));
 			}

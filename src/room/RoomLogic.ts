@@ -81,6 +81,10 @@ export class RoomLogic implements IRoomLogic, IBaseRoomClass {
 			totalAvailableEnergy: this.getTotalAvailableEnergy(),
 		}
 
+		for (const key in this.room.colonieMemory.resources.dropped.energy) {
+			this.room.colonieMemory.resources.dropped.energy[key as Id<Resource>].transporterCount = 0;
+		}
+
 		for (const key in Memory.creeps) {
 			if (!Game.creeps[key] || Game.creeps[key] === null) {
 				delete Game.creeps[key];
@@ -93,9 +97,16 @@ export class RoomLogic implements IRoomLogic, IBaseRoomClass {
 				case "miner":
 					stats.roles.miner++;
 					break;
-				case "transporter":
+				case "transporter": {
 					stats.roles.transporter++;
+					const energyTarget = Game.creeps[key].memory.energyTarget as Id<Resource>;
+
+					if (this.room.colonieMemory.resources.dropped.energy[energyTarget]) {
+						this.room.colonieMemory.resources.dropped.energy[energyTarget].transporterCount++;
+					}
 					break;
+				}
+
 				case "worker":
 					stats.roles.worker++;
 					break;
@@ -123,9 +134,9 @@ export class RoomLogic implements IRoomLogic, IBaseRoomClass {
 
 				droppedResources.forEach((resource: Resource) => {
 					if (resource instanceof Resource && !this.room.colonieMemory.resources.dropped.energy[resource.id]) {
-						this.room.colonieMemory.resources.dropped.energy[resource.id] = resource.pos;
+						this.room.colonieMemory.resources.dropped.energy[resource.id] = {pos: resource.pos, transporterCount: 0};
 					} else if (resource instanceof Mineral && !this.room.colonieMemory.resources.dropped.minerals[resource.id]) {
-						this.room.colonieMemory.resources.dropped.minerals[resource.id] = resource.pos;
+						this.room.colonieMemory.resources.dropped.minerals[resource.id] = {pos: resource.pos, transporterCount: 0};
 					}
 				})
 			}
@@ -135,13 +146,14 @@ export class RoomLogic implements IRoomLogic, IBaseRoomClass {
 			if (!Game.getObjectById(resource as Id<Resource>)) {
 				delete this.room.colonieMemory.resources.dropped.energy[resource as Id<Resource>];
 			}
-		})
+		});
 
 		Object.keys(this.room.colonieMemory.resources.dropped.minerals).forEach((mineral) => {
 			if (!Game.getObjectById(mineral as Id<Mineral>)) {
 				delete this.room.colonieMemory.resources.dropped.minerals[mineral as Id<Mineral>];
 			}
-		})
+		});
+
 	}
 
 	getTotalAvailableEnergy() {
@@ -183,7 +195,7 @@ export class RoomLogic implements IRoomLogic, IBaseRoomClass {
 
 		for (const value of Object.values(containingEnergy)) {
 			for (const obj of value) {
-				if ("store" in obj)
+				if ('store' in obj)
 					energy += (obj as StructureContainer | StructureStorage | StructureLink | StructureTerminal).store.getUsedCapacity(RESOURCE_ENERGY);
 				else
 					energy += (obj as Resource<"energy">).amount;

@@ -114,7 +114,7 @@ export class HandleSpawn {
 
 		if (transporter <= 0) {
 			spawnPriorityList.push(['transporter', ''], ['miner', ''], ['worker', '']);
-		} else if (transporter <= Memory.settings.transporterPerSource * 4) {
+		} else if (transporter <= this.room.stats.roles.miner) {
 			spawnPriorityList.push(['miner', ''], ['transporter', ''], ['worker', '']);
 		} else {
 			spawnPriorityList.push(['miner', ''], ['worker', ''], ['transporter', '']);
@@ -207,7 +207,7 @@ export class HandleSpawn {
 			}
 
 			_.forEach(this.spawnQueue, spawn => {
-				if (spawn.memory && (spawn.memory.job == jobs[i] && spawn.memory.task == task)) {
+				if (spawn.memory && (spawn.memory.job === jobs[i] && spawn.memory.task === task)) {
 					neededCreeps--;
 				}
 			});
@@ -325,7 +325,7 @@ export class HandleSpawn {
 		if (taskData.neededCreeps && taskData.neededCreeps <= -1) {
 			taskData.neededCreeps = Math.min(creepSpawnCount, 20);
 		} else {
-			const creepCount = _.filter(Game.creeps, (creep) => creep.memory.job == 'worker' && creep.getTask() == task).length;
+			const creepCount = _.filter(Game.creeps, (creep) => creep.memory.job == 'worker' && creep.getTask() === task).length;
 			creepSpawnCount = Math.max(0, (taskData.neededCreeps as number) - creepCount);
 		}
 

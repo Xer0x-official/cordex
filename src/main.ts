@@ -21,7 +21,7 @@ export function loop() {
 		Memory.settings = {};
 		Memory.settings.loggingLevel = LogLevel.Verbose;
 		Memory.settings.user = getUserName();
-		Memory.settings.transporterPerSource = 1;
+		Memory.settings.transporterPerSource = 2;
 		log.debug("Logging Level set to Verbose");
 		log.warning("💎=== Script Loaded ===💎");
 	}
@@ -29,12 +29,6 @@ export function loop() {
 	if (!Memory.colonies) {
 		Memory.colonies = {};
 	}
-
-	let cpuBeforeRoom = Game.cpu.getUsed();
-	let cpuAfterRoom = 0;
-	let cpuAfterCreep = 0;
-	let cpuAfterMemory = 0;
-
 	// make a list of all of our rooms
 	let rooms = _.filter(Game.rooms, room => room.controller && room.controller.level > 0 && room.controller.my);
 

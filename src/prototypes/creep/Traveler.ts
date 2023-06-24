@@ -89,6 +89,7 @@ export class Traveler {
 		// handle case where creep is stuck
 		if (!options.stuckValue) { options.stuckValue = DEFAULT_STUCK_VALUE; }
 		if (state.stuckCount >= options.stuckValue && Math.random() > .5) {
+			creep.pos.pushCreepsAway();
 			options.ignoreCreeps = false;
 			options.freshMatrix = true;
 			delete travelData.path;

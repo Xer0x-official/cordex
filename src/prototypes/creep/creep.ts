@@ -140,7 +140,7 @@ Creep.prototype.loadResource = function loadResource(resourceType = RESOURCE_ENE
 
 	resourceSources.dropped = resourcesInOrigin;
 
-	if(!lookInRoom) {
+	if (!lookInRoom) {
 		resourceSources.dropped.concat(resourcesInRemotes);
 	}
 
@@ -168,7 +168,7 @@ Creep.prototype.loadResource = function loadResource(resourceType = RESOURCE_ENE
 			else
 				sequence.push('container', 'dropped', 'storage');
 
-			if (this.memory.energyTarget && this.memory.energyTarget !== null && energyTargetCounted[this.memory.energyTarget] <= Memory.settings.transporterPerSource) {
+			if (this.memory.energyTarget && colonieMemory.resources.dropped.energy[this.memory.energyTarget] && colonieMemory.resources.dropped.energy[this.memory.energyTarget].transporterCount <= Memory.settings.transporterPerSource) {
 				const source = Game.getObjectById(this.memory.energyTarget);
 
 				if (source) {
@@ -181,6 +181,7 @@ Creep.prototype.loadResource = function loadResource(resourceType = RESOURCE_ENE
 
 				return this.memory.energyTarget;
 			}
+			console.log('check2');
 
 			sources: for (i = 0; i < sequence.length; i++) {
 				if (resourceSources[sequence[i]].length <= 0) {
@@ -190,18 +191,22 @@ Creep.prototype.loadResource = function loadResource(resourceType = RESOURCE_ENE
 				for (let j = 0; j < resourceSources[sequence[i]].length; j++) {
 					const source = resourceSources[sequence[i]][j];
 
-					if (sequence[i] === 'dropped' && source && energyTargetCounted[source.id] > Memory.settings.transporterPerSource) {
-						continue;
+					// if (sequence[i] === 'dropped' && source && energyTargetCounted[source.id] > Memory.settings.transporterPerSource) {
+						// continue;
 						/* for (let j = 0; j < resourceSources[sequence[i]].length; j++) {
 							if (energyTargetCounted[resourceSources[sequence[i]][j].id] < 2) {
 								source = resourceSources[sequence[i]][j];
 							}
 						} */
-					}
+					// }
 
 					//const source = resourceSources[sequence[i]][0];
 
 					if (source) {
+						if (colonieMemory.resources.dropped.energy[source.id].transporterCount > Memory.settings.transporterPerSource) {
+							continue;
+						}
+
 						this.memory.energyTarget = source.id;
 
 						if (sequence[i] === 'dropped') {
@@ -279,8 +284,8 @@ Creep.prototype.getResourceTarget = function getResourceTarget(resourceType = RE
 	};
 
 	let droppedResources = Object.keys(colonieMemory.resources.dropped.energy)
-    .map((resourceId) => Game.getObjectById(resourceId as Id<Resource>))
-    .filter((resource): resource is Resource => resource !== null);
+		.map((resourceId) => Game.getObjectById(resourceId as Id<Resource>))
+		.filter((resource): resource is Resource => resource !== null);
 
 	let resourcesInOrigin = droppedResources.filter(resource => resource.pos.roomName === this.memory.origin);
 	let resourcesInRemotes = droppedResources.filter(resource => resource.pos.roomName !== this.memory.origin);
@@ -291,10 +296,10 @@ Creep.prototype.getResourceTarget = function getResourceTarget(resourceType = RE
 	resourceSources.dropped = lookInRoom ? resourcesInOrigin : resourcesInOrigin.concat(resourcesInRemotes);
 
 	// Suche nach Containern
+	const targetObject: AnyStructure = Game.getObjectById(this.target) as AnyStructure;
 	const containers = this.room.find(FIND_STRUCTURES, {
-		filter: (structure: Structure) => structure.structureType === STRUCTURE_CONTAINER &&
-			(!this.target || this.target == null || (this.target && this.target != null && this.target.structureType && this.target.structureType !== STRUCTURE_CONTAINER && this.target.structureType !== STRUCTURE_STORAGE)) &&
-			(structure as StructureContainer).store.getUsedCapacity() > 0,
+		filter: (structure: Structure) => structure.structureType === STRUCTURE_CONTAINER && (structure as StructureContainer).store.getUsedCapacity() > 0 &&
+			(!targetObject || (targetObject && targetObject.structureType && targetObject.structureType !== STRUCTURE_CONTAINER && targetObject.structureType !== STRUCTURE_STORAGE))
 	});
 	resourceSources.container.push(...containers);
 
@@ -310,17 +315,25 @@ Creep.prototype.getResourceTarget = function getResourceTarget(resourceType = RE
 
 	switch (this.memory.job) {
 		case 'transporter':
-			if (this.target && this.target.structureType && this.target.structureType != null && (this.target.structureType == STRUCTURE_EXTENSION || this.target.structureType == STRUCTURE_SPAWN))
+			if (this.target && this.target.structureType && this.target.structureType != null && (this.target.structureType == STRUCTURE_EXTENSION || this.target.structureType == STRUCTURE_SPAWN)) {
 				sequence.push('container', 'storage', 'dropped');
-			else
+			} else {
 				sequence.push('container', 'dropped', 'storage');
-
-			if (this.memory.energyTarget && this.memory.energyTarget !== null && energyTargetCounted[this.memory.energyTarget] <= Memory.settings.transporterPerSource) {
-				source = Game.getObjectById(this.memory.energyTarget);
-				break;
 			}
 
-			sources: for (i = 0; i < sequence.length; i++) {
+			/* if (this.memory.energyTarget && this.room.colonieMemory.resources.energy[this.memory.energyTarget].transporterCount <= Memory.settings.transporterPerSource) {
+				 */
+			if (this.memory.energyTarget ) {//&& colonieMemory.resources.dropped.energy[this.memory.energyTarget] && colonieMemory.resources.dropped.energy[this.memory.energyTarget].transporterCount <= Memory.settings.transporterPerSource) {
+				source = Game.getObjectById(this.memory.energyTarget);
+				if (source && (((source instanceof StructureContainer || source instanceof StructureStorage) && source.store.getUsedCapacity() >= 0) ||
+					(source instanceof Resource && source.amount >= 0)
+				)) {
+					this.memory.energyTarget = source.id;
+					return true;
+				}
+			}
+
+			for (i = 0; i < sequence.length; i++) {
 				if (resourceSources[sequence[i]].length <= 0) {
 					continue;
 				}
@@ -328,12 +341,14 @@ Creep.prototype.getResourceTarget = function getResourceTarget(resourceType = RE
 				for (let j = 0; j < resourceSources[sequence[i]].length; j++) {
 					source = resourceSources[sequence[i]][j];
 
-					if (sequence[i] === 'dropped' && source && energyTargetCounted[source.id] > Memory.settings.transporterPerSource) {
+					/* if (sequence[i] === 'dropped' && source && energyTargetCounted[source.id] > Memory.settings.transporterPerSource) {
 						continue;
-					}
+					} */
 
-					if (source) {
-						break sources;
+					if (source && colonieMemory.resources.dropped.energy[source.id] && colonieMemory.resources.dropped.energy[source.id].transporterCount <= Memory.settings.transporterPerSource) {
+						this.room.colonieMemory.resources.dropped.energy[source.id].transporterCount++;
+						this.memory.energyTarget = source.id;
+						return true;
 					}
 				}
 			}
@@ -347,7 +362,8 @@ Creep.prototype.getResourceTarget = function getResourceTarget(resourceType = RE
 				}
 				source = resourceSources[sequence[i]][0];
 				if (source) {
-					break;
+					this.memory.energyTarget = source.id;
+					return true;
 				}
 			}
 			break;

@@ -76,8 +76,9 @@ export class Transporter implements ICreepClass {
 		} */
 
 		if (!this.loaded && this.memory.target && this.memory.target !== null) {
-			/* this.memory.energyTarget = null;
-			this.creep.memory.energyTarget = null; */
+			this.memory.target = null;
+			this.memory.energyTarget = null;
+			this.creep.memory.energyTarget = null;
 			this.resourcesAround = this.creep.room.lookForAtArea(LOOK_RESOURCES, this.creep.pos.y - 1, this.creep.pos.x - 1, this.creep.pos.y + 1, this.creep.pos.x + 1, true).map(result => result.resource);;
 
 			for (let i = 0; i < this.resourcesAround.length; i++) {
@@ -134,59 +135,51 @@ export class Transporter implements ICreepClass {
 		let targetWithoutEnoughEnergy: (StructureWithStorage | AnyCreep)[] = [];
 		const originRoom = Game.rooms[this.creep.memory.origin];
 
-		for (let i = 0; i < sequence.length + 1; i++) {
+		// Hilfsfunktion zum Prüfen von Energiekapazität
+		// Hilfsfunktion zum Prüfen von Energiekapazität
+		const isEnoughCapacity = (structure: Structure<StructureConstant>, structureType: string) => {
+			if (structure.structureType !== STRUCTURE_TOWER && structure instanceof StructureStorage) {
+				return structure.store.getFreeCapacity(RESOURCE_ENERGY) > 0;
+			} else if (structure.structureType === STRUCTURE_TOWER && structure instanceof StructureTower) {
+				return structure.store.getUsedCapacity(RESOURCE_ENERGY) <= structure.store.getCapacity(RESOURCE_ENERGY) * 0.5;
+			}
+			return false;
+		};
+
+
+		sequence.find((structureType, i) => {
 			if (i === 5) {
 				targetWithoutEnoughEnergy = _.filter(originRoom.find(FIND_MY_CREEPS), (target) => !target.spawning && target.memory.job === 'worker' && target.store.getFreeCapacity(RESOURCE_ENERGY) > 0);
 			} else {
-				targetWithoutEnoughEnergy = [];
-				_.forEach(this.creep.room.myStructurs, (structureId: Id<Structure>) => {
-					const structure = Game.getObjectById(structureId);
+				targetWithoutEnoughEnergy = this.creep.room.myStructurs
+					.map(id => Game.getObjectById(id))
+					.filter(structure =>
+						structure !== null &&
+						structure.structureType === structureType &&
+						((structure instanceof StructureStorage || structure instanceof StructureTower) && isEnoughCapacity(structure, structureType))
+					) as (AnyCreep | StructureWithStorage)[];
 
-					if (structure && structure !== null && structure.structureType === sequence[i] && (structure as StructureWithStorage).store) {
-						if ((sequence[i] === STRUCTURE_TOWER && (structure as StructureWithStorage).store.getUsedCapacity(RESOURCE_ENERGY) <= (structure as StructureWithStorage).store.getCapacity(RESOURCE_ENERGY) * 0.5) ||
-						(structure.structureType !== STRUCTURE_TOWER && (structure as StructureWithStorage).store.getFreeCapacity(RESOURCE_ENERGY) > 0)) {
-							targetWithoutEnoughEnergy.push(structure as StructureWithStorage);
-						}
-
-					}
-				});
-/*
-				_.filter(this.creep.room.myStructurs, (target: id<Structure>) =>
-					const structure = Game.getObjectById(target);
-					target.structureType === sequence[i] && target.store !== null &&
-					(
-						(target.structureType === STRUCTURE_TOWER && target.store.getUsedCapacity(RESOURCE_ENERGY) <= target.store.getCapacity(RESOURCE_ENERGY) * 0.5) ||
-						(target.structureType !== STRUCTURE_TOWER && target.store.getFreeCapacity(RESOURCE_ENERGY) > 0)
-					)
-				); */
 			}
+			return targetWithoutEnoughEnergy.length > 0;
+		});
 
-			if (targetWithoutEnoughEnergy.length > 0) {
-				break;
+		// Kein Ziel gefunden
+		if (targetWithoutEnoughEnergy.length < 1) return null;
+
+		// Bei nur einem Ziel, sofort zurückgeben
+		if (targetWithoutEnoughEnergy.length === 1) return targetWithoutEnoughEnergy[0].id;
+
+		// Sortierungsmethode wählen
+		const sortByDistance = targetWithoutEnoughEnergy[0] instanceof Structure && targetWithoutEnoughEnergy[0].structureType === STRUCTURE_EXTENSION;
+
+		// Sortieren
+		targetWithoutEnoughEnergy.sort((a, b) => {
+			if (sortByDistance) {
+				return a.pos.getRangeTo(this.creep.pos) - b.pos.getRangeTo(this.creep.pos);
+			} else {
+				return b.store.getFreeCapacity(RESOURCE_ENERGY) - a.store.getFreeCapacity(RESOURCE_ENERGY);
 			}
-		}
-
-		if (targetWithoutEnoughEnergy.length < 1) {
-			return null;
-		} else if (targetWithoutEnoughEnergy.length === 1) {
-			return targetWithoutEnoughEnergy[0].id;
-		}
-
-		if (targetWithoutEnoughEnergy[0] instanceof Structure && targetWithoutEnoughEnergy[0].structureType === STRUCTURE_EXTENSION) {
-			targetWithoutEnoughEnergy.sort((a, b) => {
-				const storeA = a.pos.getRangeTo(this.creep.pos);
-				const storeB = b.pos.getRangeTo(this.creep.pos);
-				return storeA - storeB;
-			});
-		} else {
-			targetWithoutEnoughEnergy.sort((a, b) => {
-				const storeA = a.store.getFreeCapacity(RESOURCE_ENERGY);
-				const storeB = b.store.getFreeCapacity(RESOURCE_ENERGY);
-				return storeB - storeA;
-			});
-
-			Structure
-		}
+		});
 
 		return targetWithoutEnoughEnergy[0].id;
 	}

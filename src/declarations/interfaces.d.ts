@@ -1,13 +1,13 @@
 
 interface IDroppedResourceMemory {
 	[name: string]: any;
-	energy: {[name: Id<Resource>]: RoomPosition},
-	minerals: {[name: Id<Mineral>]: RoomPosition},
+	energy: {[name: Id<Resource>]: {pos: RoomPosition, transporterCount: number}},
+	minerals: {[name: Id<Mineral>]: {pos: RoomPosition, transporterCount: number}},
 }
 
 interface IResourceMemory {
 	[name: string]: any;
-	energy: {[name: Id<Source>]: { pos: RoomPosition, miner: Id<Creep> | null}},
+	energy: {[name: Id<Source>]: { pos: RoomPosition, miner: Id<Creep> | null }},
 	minerals: {[name: Id<Mineral>]: { pos: RoomPosition, miner: Id<Creep> | null}},
 	dropped: IDroppedResourceMemory;
 }

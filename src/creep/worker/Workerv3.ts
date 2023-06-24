@@ -6,6 +6,7 @@ enum State {
     IsTargetNear,
     DoesTargetNeedEnergy,
     FindEnergySource,
+	FindEnergySourceInRemote,
     IsSourceNear,
     Execute,
     End
@@ -37,7 +38,6 @@ export class Worker implements ICreepClass{
 		this.stateGraph = [];
 
 		this._run();
-		console.log(this.stateGraph);
     }
 
 	_run() {
@@ -59,10 +59,12 @@ export class Worker implements ICreepClass{
 			}
 
             case State.HasTarget: {
-				if (this.memory.target && this.memory.target !== null) {
+				if (this.memory.target) {
 					this.target = Game.getObjectById(this.memory.target);
-					this.state = State.HasEnergy;
-					break;
+					if (this.target) {
+						this.state = State.HasEnergy;
+						break;
+					}
 				}
 
 				this.target = null;
@@ -72,9 +74,12 @@ export class Worker implements ICreepClass{
 
             case State.FindTarget: {
 				for (let i = 0; i < 3; i++) {
-					if (this.findTarget()) {
-						this.state = State.HasEnergy;
-						break;
+					if (this.findTarget() && this.memory.target) {
+						this.target = Game.getObjectById(this.memory.target);
+						if (this.target) {
+							this.state = State.HasEnergy;
+							break;
+						}
 					}
 				}
 
@@ -96,7 +101,7 @@ export class Worker implements ICreepClass{
 			}
 
             case State.IsTargetNear: {
-				if (this.creep.pos.getRangeTo(this.target.pos) <= 3) {
+				if (this.creep.pos.getRangeTo(this.target.pos) <= 3 && this.creep.pos.roomName === this.target.pos.roomName) {
 					this.execute = Execute.Build;
 					this.state = State.Execute;
 					break;
@@ -113,9 +118,9 @@ export class Worker implements ICreepClass{
 					break;
 				}
 
+				this.target = null;
+				this.memory.target = null;
 				if (this.doesTargetNeedEnergyAttempts === 0) {
-					this.target = null;
-					this.memory.target = null;
 					this.state = State.FindTarget;
 					this.doesTargetNeedEnergyAttempts++;
 				} else {
@@ -128,6 +133,20 @@ export class Worker implements ICreepClass{
             case State.FindEnergySource: {
 				for (let i = 0; i < 3; i++) {
 					if (this.creep.getResourceTarget(RESOURCE_ENERGY, false)) {
+						this.state = State.IsSourceNear;
+						break;
+					}
+				}
+
+				if (this.state !== State.IsSourceNear) {
+					this.state = State.FindEnergySourceInRemote;
+				}
+                break;
+			}
+
+			case State.FindEnergySourceInRemote: {
+				for (let i = 0; i < 3; i++) {
+					if (this.creep.getResourceTarget(RESOURCE_ENERGY, true)) {
 						this.state = State.IsSourceNear;
 						break;
 					}
@@ -183,15 +202,14 @@ export class Worker implements ICreepClass{
 			return true;
 		}
 
-		if (this.target instanceof StructureController) {
+		/* if (this.target instanceof StructureController) {
 			this.memory.working = creepCapacity > 0;
 			return creepCapacity > 0;
-		}
+		} */
 
 		const targetProgress = this.target.progressTotal - this.target.progress;
 		const neededEnergy = Math.min(targetProgress, this.creep.store.getCapacity());
 
-		console.log(`${creepCapacity}/${neededEnergy}`)
 		this.memory.working = creepCapacity >= neededEnergy;
 		return creepCapacity >= neededEnergy;
 
@@ -225,7 +243,7 @@ export class Worker implements ICreepClass{
 			return false;
 		}
 
-		if (task.includes('controller')) {
+		if (task.includes('controller') && this.creep.room.getBuildQueueTask(task).structures.length === 1) {
 			if (this.creep.room.controller) {
 				this.memory.target = this.creep.room.controller.id;
 				return true;
@@ -259,7 +277,6 @@ export class Worker implements ICreepClass{
 		switch (this.execute) {
 			case Execute.Recycle: {
 				this.creep.getRescycled();
-				console.log(`Status: ${this.state}`, this.memory.energyTarget)
 				break;
 			}
 
@@ -304,7 +321,8 @@ export class Worker implements ICreepClass{
 					let buildTarget = Game.getObjectById(this.memory.target);
 
 					if (buildTarget !== null) {
-						this.creep.travelTo(buildTarget, {ignoreCreeps: false, preferHighway: true, range: 3});
+						this.creep.travelTo(buildTarget, {ignoreCreeps: false, preferHighway: true,
+							range: (buildTarget.pos.roomName === this.creep.pos.roomName || this.creep.pos.isEdge() ? 3 : 0)});
 					}
 				}
 				break;

@@ -42,7 +42,7 @@ export class RoomBuilder implements IBaseRoomClass {
 			case 3:
 				this.buildStructure('tower');
 			case 2:
-				this.buildStructure('bunker', new RoomPosition(this.spawn.pos.x - 3, this.spawn.pos.y -1, this.name));
+				this.buildStructure('bunker', new RoomPosition(this.spawn.pos.x - 3, this.spawn.pos.y - 1, this.name));
 			default:
 				this.buildPaths();
 				this.buildController();
@@ -111,13 +111,32 @@ export class RoomBuilder implements IBaseRoomClass {
 			let controllerUpgradeCost = (Math.floor(this.room.stats.totalAvailableEnergy / this.controllerUpgradeThreshhold) * this.controllerUpgradeThreshhold) * 0.75;
 			controllerUpgradeCost = controllerUpgradeCost > (CONTROLLER_LEVELS[this.rcl] * 0.25) ? (CONTROLLER_LEVELS[this.rcl] * 0.25) : controllerUpgradeCost;
 			console.log(`ROOM: Tried to add buildingProject controller_${Game.time} with ${controllerUpgradeCost} costs`);
+			const roomController = this.room.controller;
+			let containerAroundController: number = 0;
+			if (roomController) {
+				containerAroundController = this.room.lookForAtArea(LOOK_STRUCTURES, roomController.pos.x -2, roomController.pos.y -2, roomController.pos.x +2, roomController.pos.y +2, true)
+				.filter(structure => structure && structure.structure.structureType === STRUCTURE_CONTAINER).length;
+			}
 
-			this.room.buildQueue.push({
+			const buildData = {
 				name: `controller_${Game.time}`,
 				cost: controllerUpgradeCost,
 				structures: [{ pos: this.room.controller?.pos, type: undefined } as buildBlueprintBuildElement],
 				neededCreeps: -1
-			});
+			};
+
+			if (roomController && containerAroundController <= 0 && this.rcl >= 1) {
+				const spawn = Game.getObjectById(this.room.colonieMemory.spawns[0]);
+				const containerPosition = this.findOptimalContainerPosition(spawn as StructureSpawn, roomController);
+
+				if (containerPosition) {
+					buildData.cost += 5000;
+					buildData.structures.unshift({pos: containerPosition, type: STRUCTURE_CONTAINER});
+					this.room.createConstructionSite(containerPosition, STRUCTURE_CONTAINER);
+				}
+			}
+
+			this.room.buildQueue.push(buildData);
 		}
 	}
 
@@ -225,5 +244,49 @@ export class RoomBuilder implements IBaseRoomClass {
 		if (buildData.structures && buildData.structures.length > 0) {
 			this.room.buildQueue.push(buildData);
 		}
+	}
+
+	/* findOptimalContainerPosition(spawn: StructureSpawn, controller: StructureController): RoomPosition | null {
+		// Pfad vom Spawner zum Controller ermitteln
+		const path = PathFinder.search(spawn.pos, controller.pos).path;
+
+		// Position zwei Schritte vom Controller entfernt ermitteln
+		const posIndex = path.findIndex(pos => pos.getRangeTo(controller.pos) === 2);
+
+		// Überprüfen, ob eine geeignete Position gefunden wurde
+		if (posIndex !== -1) {
+			const containerPos = path[posIndex];
+
+			// Überprüfen, ob der Standort für den Bau eines Containers geeignet ist
+			const terrain = new Room.Terrain(containerPos.roomName);
+			if (terrain.get(containerPos.x, containerPos.y) !== TERRAIN_MASK_WALL) {
+				// Überprüfen, ob alle umliegenden Positionen frei sind
+				const freePositions = containerPos.getFreePositions();
+
+				console.log("func", freePositions);
+				if (freePositions.length === 8) {  // eine Position hat maximal 8 Nachbarn in einem Quadratgitter
+					return containerPos;
+				}
+			}
+		}
+
+		return null;
+	} */
+
+	findOptimalContainerPosition(spawn: StructureSpawn, controller: StructureController): RoomPosition | null {
+		const freeControllerPositions = controller.pos.getFreePositions(2);
+		const containerBuildPositions = freeControllerPositions.filter(position => position.getFreePositions().length === 8);
+
+		containerBuildPositions.sort((a,b) => {
+			const spawnDistanceA = a.getRangeTo(spawn.pos);
+			const spawnDistanceB = b.getRangeTo(spawn.pos);
+			return spawnDistanceA - spawnDistanceB;
+		})
+
+		if (containerBuildPositions.length >= 0) {
+			return containerBuildPositions[0];
+		}
+
+		return null;
 	}
 }

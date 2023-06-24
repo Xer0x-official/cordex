@@ -1,6 +1,8 @@
 
 import {Miner} from "./Miner";
-import { Transporter } from "./Transporter";
+//import { Transporter } from "./Transporter";
+// import { Transporter } from "./transporter/Transporterv2";
+import { Transporter } from "./transporter/Transporterv3";
 //import { Worker } from "./Worker";
 import { Worker } from "./worker/Workerv3";
 import { Scout } from "./Scout";
