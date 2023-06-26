@@ -216,7 +216,7 @@ export class Worker implements ICreepClass{
 	}
 
 	getTask() {
-		if (this.creep.room.getBuildQueueTask(this.creep.memory.task)) {
+		if (this.creep.memory.task !== '' && this.creep.room.getBuildQueueTask(this.creep.memory.task)) {
 			return this.creep.memory.task;
 		}
 
@@ -233,7 +233,7 @@ export class Worker implements ICreepClass{
 		let taskStructures = [];
 		let i = 0;
 
-		if (task === '') {
+		if (task === '' && buildQueue.length <= 0) {
 			return false;
 		} else {
 			this.memory.task = task;
