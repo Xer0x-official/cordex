@@ -237,16 +237,16 @@ export class Transporter implements ICreepClass {
 	}
 
 	findTarget() {
-		const sequence = [STRUCTURE_EXTENSION, STRUCTURE_SPAWN, STRUCTURE_TOWER, FIND_MY_CREEPS, STRUCTURE_CONTAINER, STRUCTURE_LINK, STRUCTURE_STORAGE];
+		const sequence = [STRUCTURE_EXTENSION, STRUCTURE_SPAWN, STRUCTURE_TOWER, FIND_MY_CREEPS, STRUCTURE_CONTAINER, STRUCTURE_LINK, STRUCTURE_TERMINAL, STRUCTURE_STORAGE];
 		let targetWithoutEnoughEnergy: (StructureWithStorage | AnyCreep)[] = [];
 		const originRoom = Game.rooms[this.creep.memory.origin];
 
 		// Hilfsfunktion zum Prüfen von Energiekapazität
 		const isEnoughCapacity = (structure: Structure<StructureConstant>) => {
 			if (structure.structureType !== STRUCTURE_TOWER && structure instanceof StructureStorage) {
-				return structure.store.getFreeCapacity(RESOURCE_ENERGY) > 0;
+				return structure.store.getFreeCapacity(RESOURCE_ENERGY) <= 0;
 			} else if (structure.structureType === STRUCTURE_TOWER && structure instanceof StructureTower) {
-				return structure.store.getUsedCapacity(RESOURCE_ENERGY) <= structure.store.getCapacity(RESOURCE_ENERGY) * 0.5;
+				return structure.store.getFreeCapacity(RESOURCE_ENERGY) <= structure.store.getCapacity(RESOURCE_ENERGY) * 0.5;
 			}
 			return false;
 		};
@@ -259,10 +259,9 @@ export class Transporter implements ICreepClass {
 				targetWithoutEnoughEnergy = this.creep.room.myStructurs
 					.map(id => Game.getObjectById(id))
 					.filter(structure =>
-						structure !== null &&
-						structure.structureType === structureType &&
-						(((structure instanceof StructureStorage || structure instanceof StructureTower) && isEnoughCapacity(structure)) ||
-							(structure as StructureWithStorage).store.getFreeCapacity(RESOURCE_ENERGY) > 0)
+						structure && structure.structureType === structureType &&
+						(((structure instanceof StructureStorage || structure instanceof StructureTower) && !isEnoughCapacity(structure)) ||
+						!(structure instanceof StructureStorage || structure instanceof StructureTower) && (structure as StructureWithStorage).store.getFreeCapacity(RESOURCE_ENERGY) > 0)
 					) as StructureWithStorage[];
 			}
 			return targetWithoutEnoughEnergy.length > 0;
