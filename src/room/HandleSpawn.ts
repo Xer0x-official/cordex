@@ -114,7 +114,7 @@ export class HandleSpawn {
 
 		if (transporter <= 0) {
 			spawnPriorityList.push(['transporter', ''], ['miner', ''], ['worker', '']);
-		} else if (transporter <= this.room.stats.roles.miner) {
+		} else if (transporter < this.room.stats.roles.miner) {
 			spawnPriorityList.push(['miner', ''], ['transporter', ''], ['worker', '']);
 		} else {
 			spawnPriorityList.push(['miner', ''], ['worker', ''], ['transporter', '']);
@@ -207,7 +207,7 @@ export class HandleSpawn {
 			}
 
 			_.forEach(this.spawnQueue, spawn => {
-				if (spawn.memory && (spawn.memory.job === jobs[i] && spawn.memory.task === task)) {
+				if (spawn.memory && (spawn.memory.job === jobs[i] && spawn.memory.task.includes(task.slice(0, 3)))) {
 					neededCreeps--;
 				}
 			});
@@ -274,16 +274,26 @@ export class HandleSpawn {
 	}
 
 	calculateBodyParts(energy: number) {
+
 		const energyAvailable = Math.floor(energy / 50);
 		const isOdd = energyAvailable % 2 !== 0;
-		const energyHalf = Math.floor(energyAvailable / 2);
-		const energyFourth = Math.floor(energyHalf / 2);
+		/* const energyHalf = Math.floor(energyAvailable / 2);
+		const energyFourth = Math.floor(energyHalf / 2); */
 
 		const partCount = {
-			WORK: energyFourth,
-			CARRY: energyFourth,
-			MOVE: energyFourth,
+			WORK: 0,
+			CARRY: (energyAvailable < 6 ? 1 : 2),
+			MOVE: (energyAvailable < 6 ? 1 : 2),
 		};
+
+		const leftEnergy = energyAvailable - (partCount.CARRY + partCount.MOVE);
+
+		if (leftEnergy % 2 === 0) {
+			partCount.WORK = Math.floor(leftEnergy / 2);
+		} else {
+			partCount.WORK = Math.floor(leftEnergy / 2);
+			partCount.MOVE += 1;
+		}
 
 		/*
 		const energyHalf = Math.floor(energyAvailable / 2);

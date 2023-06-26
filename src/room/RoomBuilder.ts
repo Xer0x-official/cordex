@@ -54,14 +54,20 @@ export class RoomBuilder implements IBaseRoomClass {
 	}
 
 	buildStructure(name: string, positionInit: RoomPosition | undefined = undefined): void {
+		let pack = 0;
+
+		if (name.includes('extensionPack')) {
+			pack = parseInt(name.slice(-1), 10);
+			name = 'extensionPack';
+		}
+
+
 		if (!this.isBuildAlreadyInQueue(name)) {
 			const baseExtensions = this.room.baseExtensions;
 			let extension = undefined;
 			let constructionErr = 0;
 
 			if (name.includes('extensionPack')) {
-				const pack = parseInt(name.slice(-1), 10);
-				name = 'extensionPack';
 				extension = baseExtensions['extensionPacks'][pack];
 			} else {
 				extension = baseExtensions[name];
@@ -125,7 +131,7 @@ export class RoomBuilder implements IBaseRoomClass {
 				neededCreeps: -1
 			};
 
-			if (roomController && containerAroundController <= 0 && this.rcl >= 1) {
+			if (roomController && containerAroundController <= 0 && this.rcl >= 2) {
 				const spawn = Game.getObjectById(this.room.colonieMemory.spawns[0]);
 				const containerPosition = this.findOptimalContainerPosition(spawn as StructureSpawn, roomController);
 

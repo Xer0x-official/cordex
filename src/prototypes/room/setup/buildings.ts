@@ -37,7 +37,7 @@ export function setupBuildings(room: Room) {
 			case 'extensionPack_6':
 			case 'extensionPack_7':
 			case 'extensionPack_8': {
-				baseExtensions.extensionPacks.push(room.getPositionForBuild(3, [new RoomPosition(startPosition.x, startPosition.y, room.name)], false, buildingMatrix));
+				baseExtensions.extensionPacks.push(room.getPositionForBuild(4, [new RoomPosition(startPosition.x, startPosition.y, room.name)], false, buildingMatrix));
 				position = baseExtensions.extensionPacks[baseExtensions.extensionPacks.length - 1];
 				offset = -2;
 				break;

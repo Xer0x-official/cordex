@@ -303,14 +303,19 @@ export class Worker implements ICreepClass{
 			case Execute.Build: {
 				if (this.memory.target) {
 					let buildTarget = Game.getObjectById(this.memory.target);
+					let err = -1;
 					if (buildTarget === null) {
 						break;
 					}
 
 					if (buildTarget instanceof StructureController) {
-						this.creep.upgradeController(buildTarget);
+						err = this.creep.upgradeController(buildTarget);
 					} else if (buildTarget instanceof ConstructionSite) {
-						this.creep.build(buildTarget);
+						err = this.creep.build(buildTarget);
+					}
+
+					if (err === OK || err === ERR_FULL) {
+						this.updateBuildQueueCost()
 					}
 				}
 				break;
@@ -337,6 +342,25 @@ export class Worker implements ICreepClass{
 					}
 				}
 				break;
+			}
+		}
+	}
+
+	updateBuildQueueCost() {
+		let workCost = this.creep.getCountOfBodyPart(WORK) * (this.creep.getTask().includes('controller') ? 1 : 5);
+		let i = 0;
+
+		for (i = 0; i < this.creep.room.buildQueue.length; i++) {
+			if (this.creep.room.buildQueue[i].name.includes(this.creep.getTask())) {
+				break;
+			}
+		}
+
+		if (this.creep.room.buildQueue[i]) {
+			if (workCost <= this.creep.store.getUsedCapacity(RESOURCE_ENERGY)) {
+				(this.creep.room.buildQueue[i].cost as number) -= workCost;
+			} else {
+				(this.creep.room.buildQueue[i].cost as number) -= this.creep.store.getUsedCapacity(RESOURCE_ENERGY) - (this.creep.store.getUsedCapacity(RESOURCE_ENERGY) % this.creep.getCountOfBodyPart(WORK));
 			}
 		}
 	}

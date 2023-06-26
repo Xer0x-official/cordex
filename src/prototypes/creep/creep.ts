@@ -266,12 +266,13 @@ Creep.prototype.aboutToDie = function () {
  */
 Creep.prototype.getResourceTarget = function getResourceTarget(resourceType = RESOURCE_ENERGY, lookInRoom: boolean = false): boolean {
 	const colonieMemory = this.room.colonieMemory;
+	const targetObject: AnyStructure = Game.getObjectById(this.target) as AnyStructure;
 
 	if (!colonieMemory) {
 		return false;
 	}
 
-	const energyTargetCounted = _.countBy(Game.creeps, (creep) => creep.memory.energyTarget || 'undefined');
+	//const energyTargetCounted = _.countBy(Game.creeps, (creep) => creep.memory.energyTarget || 'undefined');
 	const resourceSources: {
 		[name: string]: any;
 		dropped: Resource[];
@@ -296,7 +297,6 @@ Creep.prototype.getResourceTarget = function getResourceTarget(resourceType = RE
 	resourceSources.dropped = lookInRoom ? resourcesInOrigin : resourcesInOrigin.concat(resourcesInRemotes);
 
 	// Suche nach Containern
-	const targetObject: AnyStructure = Game.getObjectById(this.target) as AnyStructure;
 	const containers = this.room.find(FIND_STRUCTURES, {
 		filter: (structure: Structure) => structure.structureType === STRUCTURE_CONTAINER && (structure as StructureContainer).store.getUsedCapacity() > 0 &&
 			(!targetObject || (targetObject && targetObject.structureType && targetObject.structureType !== STRUCTURE_CONTAINER && targetObject.structureType !== STRUCTURE_STORAGE))
@@ -305,7 +305,7 @@ Creep.prototype.getResourceTarget = function getResourceTarget(resourceType = RE
 
 	// Suche nach der Storage
 	if (this.room.storage && this.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > 0 &&
-		(!this.target || this.target === null || (!this.target.structureType || this.target.structureType !== STRUCTURE_CONTAINER))) {
+		(!targetObject || (targetObject.structureType !== STRUCTURE_CONTAINER))) {
 		resourceSources.storage.push(this.room.storage);
 	}
 
@@ -315,7 +315,7 @@ Creep.prototype.getResourceTarget = function getResourceTarget(resourceType = RE
 
 	switch (this.memory.job) {
 		case 'transporter':
-			if (this.target && this.target.structureType && this.target.structureType != null && (this.target.structureType == STRUCTURE_EXTENSION || this.target.structureType == STRUCTURE_SPAWN)) {
+			if (targetObject && targetObject instanceof Structure && (targetObject.structureType == STRUCTURE_EXTENSION || targetObject.structureType == STRUCTURE_SPAWN)) {
 				sequence.push('container', 'storage', 'dropped');
 			} else {
 				sequence.push('container', 'dropped', 'storage');
@@ -355,11 +355,20 @@ Creep.prototype.getResourceTarget = function getResourceTarget(resourceType = RE
 			break;
 
 		case 'worker':
-			sequence.push('storage', 'container', 'dropped');
+			sequence.push('container', 'storage', 'dropped');
 			for (i = 0; i < sequence.length; i++) {
 				if (resourceSources[sequence[i]].length <= 0) {
 					continue;
 				}
+
+				if (sequence[i] === 'container') {
+					resourceSources[sequence[i]].sort((a: Resource, b: Resource) => {
+						const rangeA = this.pos.getRangeTo(a.pos);
+						const rangeB = this.pos.getRangeTo(b.pos);
+						return rangeA - rangeB;
+					});
+				}
+
 				source = resourceSources[sequence[i]][0];
 				if (source) {
 					this.memory.energyTarget = source.id;
