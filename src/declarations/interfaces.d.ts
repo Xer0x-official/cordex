@@ -199,8 +199,6 @@ interface CreepMemory {
 	target: Id<Source> | Id<Mineral> | Id<AnyStructure> | Id<AnyCreep> | Id<ConstructionSite>  | null,
 	task: string,
 	origin: string,
-	lastPositions: RoomPosition[],
-	pathToTarget: number[],
 	energyTarget?: Id<StructureWithStorage> | Id<Resource> | null;
 }
 
