@@ -6,12 +6,14 @@ export class RoomLogic implements IRoomLogic, IBaseRoomClass {
 	name: string;
 	ticks: number;
 	memory: RoomMemory;
+    visual: RoomVisual;
 
 	constructor(room: Room, name: string) {
 		this.room = room;
 		this.name = name;
 		this.memory = _.cloneDeep(this.room.memory);
 		this.ticks = Game.time;
+        this.visual = new RoomVisual(room.name);
 
 		this._run();
 		this._updateMemory();
@@ -26,12 +28,30 @@ export class RoomLogic implements IRoomLogic, IBaseRoomClass {
 			this.room.setupRoom(false, this.name);
 			this.memory.isSetup = this.room.memory.isSetup;
 			this.memory.origin = this.room.memory.origin;
+            this.memory.buildingPlan = this.room.memory.buildingPlan;
 			return;
 		}
 
-		if (this.ticks < 100) {
-			this.room.distanceTransform(true);
-		}
+        if (this.memory.buildingPlan !== undefined) {
+            this.memory.buildingPlan.forEach((build: IPlannedStructure) => {
+                this.visual.structure(build.position.x, build.position.y, build.type, {opacity: 0.5});
+            })
+        }
+
+        // if (this.room.buildingMatrix !== undefined) {
+        //     for (let y = 0; y < 50; y++) {
+        //         for (let x = 0; x < 50; x++) {
+        //             let number = this.room.buildingMatrix.get(x, y);
+        //             if (number > 0) {
+        //                 this.visual.circle(x, y);
+        //             }
+        //         }
+        //     }
+        // }
+
+		// if (this.ticks < 100 || true) {
+		// 	this.room.distanceTransform(true);
+		// }
 
 		this._loadMemoryStatsForTick();
 

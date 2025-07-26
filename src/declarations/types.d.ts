@@ -60,3 +60,10 @@ type StructureWithStorage =
     | StructureContainer
     | StructureNuker
     | StructureFactory;
+
+type resourceSources = {
+	[name: string]: any;
+	dropped: Resource[];
+	container: StructureContainer[];
+	storage: StructureStorage[];
+};

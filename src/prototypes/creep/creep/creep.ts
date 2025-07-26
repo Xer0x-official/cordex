@@ -2,7 +2,7 @@
  * Creep prototypes
  */
 
-import { Traveler } from "./Traveler";
+import { Traveler } from "../Traveler";
 const stuckMaxCounter = 3;
 
 Creep.prototype.hasState = function (): boolean {
@@ -266,115 +266,35 @@ Creep.prototype.aboutToDie = function () {
  */
 Creep.prototype.getResourceTarget = function getResourceTarget(resourceType = RESOURCE_ENERGY, lookInRoom: boolean = false): boolean {
 	const colonieMemory = this.room.colonieMemory;
-	const targetObject: AnyStructure = Game.getObjectById(this.target) as AnyStructure;
+	const targetObject: AnyStructure = Game.getObjectById(this.target as Id<AnyStructure>) as AnyStructure;
+	let source: any = {};
+	let i = 0;
 
 	if (!colonieMemory) {
 		return false;
 	}
 
-	//const energyTargetCounted = _.countBy(Game.creeps, (creep) => creep.memory.energyTarget || 'undefined');
-	const resourceSources: {
-		[name: string]: any;
-		dropped: Resource[];
-		container: StructureContainer[];
-		storage: StructureStorage[];
-	} = {
-		dropped: [],
-		container: [],
-		storage: [],
-	};
-
-	let droppedResources = Object.keys(colonieMemory.resources.dropped.energy)
-		.map((resourceId) => Game.getObjectById(resourceId as Id<Resource>))
-		.filter((resource): resource is Resource => resource !== null);
-
-	let resourcesInOrigin = droppedResources.filter(resource => resource.pos.roomName === this.memory.origin);
-	let resourcesInRemotes = droppedResources.filter(resource => resource.pos.roomName !== this.memory.origin);
-
-	resourcesInOrigin.sort((a: Resource, b: Resource) => b.amount - a.amount);
-	resourcesInRemotes.sort((a: Resource, b: Resource) => b.amount - a.amount);
-
-	resourceSources.dropped = lookInRoom ? resourcesInOrigin : resourcesInOrigin.concat(resourcesInRemotes);
-
-	// Suche nach Containern
-	const containers = this.room.find(FIND_STRUCTURES, {
-		filter: (structure: Structure) => structure.structureType === STRUCTURE_CONTAINER && (structure as StructureContainer).store.getUsedCapacity() > 0 &&
-			(!targetObject || (targetObject && targetObject.structureType && targetObject.structureType !== STRUCTURE_CONTAINER && targetObject.structureType !== STRUCTURE_STORAGE))
-	});
-	resourceSources.container.push(...containers);
-
-	// Suche nach der Storage
-	if (this.room.storage && this.room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > 0 &&
-		(!targetObject || (targetObject.structureType !== STRUCTURE_CONTAINER))) {
-		resourceSources.storage.push(this.room.storage);
-	}
-
-	const sequence: string[] = [];
-	let source: any = {};
-	let i = 0;
+	const resourceSources = getResources(this.room, lookInRoom, colonieMemory, this, targetObject);
 
 	switch (this.memory.job) {
 		case 'transporter':
-			if (targetObject && targetObject instanceof Structure && (targetObject.structureType == STRUCTURE_EXTENSION || targetObject.structureType == STRUCTURE_SPAWN)) {
-				sequence.push('container', 'storage', 'dropped');
-			} else {
-				sequence.push('container', 'dropped', 'storage');
+
+			// resourceSources.dropped.filter((resource: Resource) => colonieMemory.resources.dropped.energy[resource.id].transporterCount < Memory.settings.transporterPerSource);
+			_.remove(resourceSources.dropped, (resource: Resource) => colonieMemory.resources.dropped.energy[resource.id].transporterCount >= Memory.settings.transporterPerSource);
+
+			source = setTransporterTarget(this, source, resourceSources,
+				targetObject && targetObject instanceof Structure && (targetObject.structureType == STRUCTURE_EXTENSION || targetObject.structureType == STRUCTURE_SPAWN)
+			);
+
+			if (source && source !== null && Game.getObjectById(source.id) instanceof Resource) {
+				this.room.colonieMemory.resources.dropped.energy[source.id].transporterCount++;
+				colonieMemory.resources.dropped.energy[source.id].transporterCount++;
 			}
 
-			/* if (this.memory.energyTarget && this.room.colonieMemory.resources.energy[this.memory.energyTarget].transporterCount <= Memory.settings.transporterPerSource) {
-				 */
-			if (this.memory.energyTarget ) {//&& colonieMemory.resources.dropped.energy[this.memory.energyTarget] && colonieMemory.resources.dropped.energy[this.memory.energyTarget].transporterCount <= Memory.settings.transporterPerSource) {
-				source = Game.getObjectById(this.memory.energyTarget);
-				if (source && (((source instanceof StructureContainer || source instanceof StructureStorage) && source.store.getUsedCapacity() >= 0) ||
-					(source instanceof Resource && source.amount >= 0)
-				)) {
-					this.memory.energyTarget = source.id;
-					return true;
-				}
-			}
-
-			for (i = 0; i < sequence.length; i++) {
-				if (resourceSources[sequence[i]].length <= 0) {
-					continue;
-				}
-
-				for (let j = 0; j < resourceSources[sequence[i]].length; j++) {
-					source = resourceSources[sequence[i]][j];
-
-					/* if (sequence[i] === 'dropped' && source && energyTargetCounted[source.id] > Memory.settings.transporterPerSource) {
-						continue;
-					} */
-
-					if (source && colonieMemory.resources.dropped.energy[source.id] && colonieMemory.resources.dropped.energy[source.id].transporterCount <= Memory.settings.transporterPerSource) {
-						this.room.colonieMemory.resources.dropped.energy[source.id].transporterCount++;
-						this.memory.energyTarget = source.id;
-						return true;
-					}
-				}
-			}
 			break;
 
 		case 'worker':
-			sequence.push('container', 'storage', 'dropped');
-			for (i = 0; i < sequence.length; i++) {
-				if (resourceSources[sequence[i]].length <= 0) {
-					continue;
-				}
-
-				if (sequence[i] === 'container') {
-					resourceSources[sequence[i]].sort((a: Resource, b: Resource) => {
-						const rangeA = this.pos.getRangeTo(a.pos);
-						const rangeB = this.pos.getRangeTo(b.pos);
-						return rangeA - rangeB;
-					});
-				}
-
-				source = resourceSources[sequence[i]][0];
-				if (source) {
-					this.memory.energyTarget = source.id;
-					return true;
-				}
-			}
+			source = setWorkerTarget(this, source, resourceSources);
 			break;
 	}
 
@@ -384,4 +304,116 @@ Creep.prototype.getResourceTarget = function getResourceTarget(resourceType = RE
 	}
 
 	return false;
+}
+
+function getResources(room: Room, lookInRoom: boolean, colonieMemory: IColonieMemory, creep: Creep, targetObject: AnyStructure) {
+
+	//const energyTargetCounted = _.countBy(Game.creeps, (creep) => creep.memory.energyTarget || 'undefined');
+	const resourceSources: resourceSources = {
+		dropped: [],
+		container: [],
+		storage: [],
+	};
+
+	let droppedResources = Object.keys(colonieMemory.resources.dropped.energy)
+		.map((resourceId) => Game.getObjectById(resourceId as Id<Resource>))
+		.filter((resource): resource is Resource =>
+		resource !== null);
+
+	let resourcesInOrigin = droppedResources.filter(resource => resource.pos.roomName === creep.memory.origin)
+		.sort((a: Resource, b: Resource) => b.amount - a.amount);
+
+	let resourcesInRemotes = droppedResources.filter(resource => resource.pos.roomName !== creep.memory.origin)
+		.sort((a: Resource, b: Resource) => b.amount - a.amount);
+
+	// resourcesInOrigin.sort((a: Resource, b: Resource) => b.amount - a.amount);
+	// resourcesInRemotes.sort((a: Resource, b: Resource) => b.amount - a.amount);
+
+	resourceSources.dropped = lookInRoom ? resourcesInOrigin : resourcesInOrigin.concat(resourcesInRemotes);
+
+	// Suche nach Containern
+	const containers: StructureContainer[] = room.find(FIND_STRUCTURES, {
+		filter: (structure: Structure) => structure.structureType === STRUCTURE_CONTAINER && (structure as StructureContainer).store.getUsedCapacity() > 0 &&
+			(!targetObject || (targetObject && targetObject.structureType && targetObject.structureType !== STRUCTURE_CONTAINER && targetObject.structureType !== STRUCTURE_STORAGE))
+	});
+	resourceSources.container.push(...containers);
+
+	// Suche nach der Storage
+	if (room.storage && room.storage.store.getUsedCapacity(RESOURCE_ENERGY) > 0 &&
+		(!targetObject || (targetObject.structureType !== STRUCTURE_CONTAINER))) {
+		resourceSources.storage.push(room.storage);
+	}
+
+	return resourceSources;
+}
+
+function setTransporterTarget(creep: Creep, source: any, resourceSources: resourceSources, isPriorityTarget: boolean) {
+	const sequence: string[] = [];
+	let i = 0;
+
+	if (isPriorityTarget) {
+		sequence.push('container', 'storage', 'dropped');
+	} else {
+		sequence.push('dropped', 'container', 'storage');
+	}
+
+	/* if (this.memory.energyTarget && this.room.colonieMemory.resources.energy[this.memory.energyTarget].transporterCount <= Memory.settings.transporterPerSource) {
+		 */
+	if (creep.memory.energyTarget ) {//&& colonieMemory.resources.dropped.energy[this.memory.energyTarget] && colonieMemory.resources.dropped.energy[this.memory.energyTarget].transporterCount <= Memory.settings.transporterPerSource) {
+		source = Game.getObjectById(creep.memory.energyTarget);
+		if (source && (((source instanceof StructureContainer || source instanceof StructureStorage) && source.store.getUsedCapacity() >= 0) ||
+			(source instanceof Resource && source.amount >= 0))
+		) {
+			creep.memory.energyTarget = source.id;
+			return source;
+		}
+	}
+
+	for (i = 0; i < sequence.length; i++) {
+		if (resourceSources[sequence[i]].length <= 0) {
+			continue;
+		}
+
+		for (let j = 0; j < resourceSources[sequence[i]].length; j++) {
+			source = resourceSources[sequence[i]][j];
+
+			/* if (sequence[i] === 'dropped' && source && energyTargetCounted[source.id] > Memory.settings.transporterPerSource) {
+				continue;
+			} */
+
+			if (source) {
+				return source;
+			}
+		}
+	}
+
+	return null;
+}
+
+function setWorkerTarget(creep: Creep, source: any, resourceSources: resourceSources) {
+	const sequence: string[] = [];
+	let i = 0;
+
+	sequence.push('container', 'storage', 'dropped');
+
+	for (i = 0; i < sequence.length; i++) {
+		if (!resourceSources[sequence[i]] || resourceSources[sequence[i]].isEmpty) {
+			continue;
+		}
+
+		if (sequence[i] === 'container') {
+			resourceSources[sequence[i]].sort((a: Resource, b: Resource) => {
+				const rangeA = creep.pos.getRangeTo(a.pos);
+				const rangeB = creep.pos.getRangeTo(b.pos);
+				return rangeA - rangeB;
+			});
+		}
+
+		source = resourceSources[sequence[i]][0];
+		if (source) {
+			return source;
+		}
+	}
+
+	return null;
 }

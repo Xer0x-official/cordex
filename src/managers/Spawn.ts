@@ -2,7 +2,7 @@ import * as OrdersUtilities from "../utilities/Orders";
 import { Role } from "../enums/role";
 import { Order } from "../classes/Order";
 import { RoomService } from "../services/Room";
-import { log } from "../tools/Logger";
+import { log } from "../utilities/Logger";
 import { Manager } from "./_Manager";
 
 export class SpawnManager extends Manager {

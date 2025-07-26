@@ -4,14 +4,13 @@ import * as roomBlueprints from "room/blueprints";
 export function setupBuildings(room: Room) {
 	const buildingMatrix = new PathFinder.CostMatrix();
 	const spawn = Game.getObjectById(room.spawns[0]) as Structure;
-	console.log(`Spawn: ${spawn}`);
 	const startPosition = new RoomPosition(spawn.pos.x, spawn.pos.y + 2, room.name);
 	const baseExtensions = room.colonieMemory.baseExtensions;
 	const blueprints: {
 		[key: string]: (undefined | bluePrintMatrixElement)[][]
 	} = {
-		'bunker': roomBlueprints.bunker,//
-		'tower': roomBlueprints.tower,//
+		'bunker': roomBlueprints.bunker,
+		'tower': roomBlueprints.tower,
 		'powerBunker': roomBlueprints.powerBunker,
 		'lab': roomBlueprints.lab,
 		'extensionPack_1': roomBlueprints.extensionPack,
@@ -36,23 +35,31 @@ export function setupBuildings(room: Room) {
 			case 'extensionPack_5':
 			case 'extensionPack_6':
 			case 'extensionPack_7':
-			case 'extensionPack_8': {
-				baseExtensions.extensionPacks.push(room.getPositionForBuild(4, [new RoomPosition(startPosition.x, startPosition.y, room.name)], false, buildingMatrix));
+			case 'extensionPack_8':
+			case 'extensionPack_9':
+			case 'extensionPack_10':
+			case 'extensionPack_11': {
+				baseExtensions.extensionPacks.push(room.getPositionForBuild(3, [new RoomPosition(startPosition.x, startPosition.y, room.name)], false, buildingMatrix));
 				position = baseExtensions.extensionPacks[baseExtensions.extensionPacks.length - 1];
-				offset = -2;
-				break;
-			}
-			case 'lab': {
-				baseExtensions[key] = room.getPositionForBuild(4, [new RoomPosition(startPosition.x, startPosition.y, room.name)], true, buildingMatrix);
-				position = baseExtensions[key];
 				offset = -1;
 				break;
 			}
-			case 'powerBunker':
+			case 'lab': {
+				baseExtensions[key] = room.getPositionForBuild(5, [new RoomPosition(startPosition.x, startPosition.y, room.name)], false, buildingMatrix);
+				position = baseExtensions[key];
+				offset = -2;
+				break;
+			}
+			case 'powerBunker': {
+                baseExtensions[key] = room.getPositionForBuild(3, [new RoomPosition(startPosition.x, startPosition.y, room.name)], true, buildingMatrix);
+                position = baseExtensions[key];
+                offset = -1;
+                break;
+            }
 			case 'tower': {
 				baseExtensions[key] = room.getPositionForBuild(3, [new RoomPosition(startPosition.x, startPosition.y, room.name)], true, buildingMatrix);
 				position = baseExtensions[key];
-				offset = -2;
+				offset = -1;
 				break;
 			}
 			case 'bunker': {
@@ -63,13 +70,23 @@ export function setupBuildings(room: Room) {
 
 		for (y = 0; y < blueprints[key].length; y++) {
 			for (x = 0; x < blueprints[key][y].length; x++) {
-				if (blueprints[key][x][y] && blueprints[key][x][y]?.type !== STRUCTURE_ROAD) {
-					buildingMatrix.set((position.x + offset) + x, (position.y + offset) + y, 255);
+				if (blueprints[key][y][x]) {
+                    const structureType = blueprints[key][y][x]?.type;
+                    if (structureType === undefined || structureType === null) {
+                        console.log("structureType undefined at: " + x + " " + y + " with key " + key);
+                        continue;
+                    }
+
+                    room.memory.buildingPlan.push({type: structureType,
+                        position: new RoomPosition((position.x + offset) + x, (position.y + offset) + y, room.name)});
+
+                    let structureCost = structureType === STRUCTURE_ROAD ? 10 : 255;
+                    buildingMatrix.set((position.x + offset) + x, (position.y + offset) + y, structureCost);
 				}
 			}
 		}
 
-		console.log(`Added ${key} at Position (${position.x + offset}, ${position.y + offset})`);
+		// console.log(`Added ${key} at Position (${position.x + offset}, ${position.y + offset})`);
 		room.buildingMatrix = buildingMatrix;
 	}
 }

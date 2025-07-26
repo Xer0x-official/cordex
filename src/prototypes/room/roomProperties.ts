@@ -14,7 +14,7 @@ Object.defineProperty(Room.prototype, 'buildingMatrix', {
 
 Object.defineProperty(Room.prototype, 'colonieMemory', {
 	get: function () {
-		const key:string = this.memory.origin || this.name;
+		const key:string = this.memory.origin;
 		const memory = Memory.colonies[key];
 
 		return memory;

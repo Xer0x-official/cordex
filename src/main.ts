@@ -1,6 +1,6 @@
 
 import * as Core from "./managers/Core";
-import { log } from "./tools/Logger";
+import { log } from "./utilities/Logger";
 import * as utils from "./utilities";
 import { RoomLogic } from "room/RoomLogic";
 import { CreepLogic } from "creep";
@@ -21,7 +21,7 @@ export function loop() {
 		Memory.settings = {};
 		Memory.settings.loggingLevel = LogLevel.Verbose;
 		Memory.settings.user = getUserName();
-		Memory.settings.transporterPerSource = 2;
+		Memory.settings.transporterPerSource = 4;
 		log.debug("Logging Level set to Verbose");
 		log.warning("💎=== Script Loaded ===💎");
 	}
@@ -46,13 +46,26 @@ export function loop() {
 		console.log(`CPU-AfterRoom: ${cpuBeforeRoom} -> ${cpuAfterRoom}`);
 	} */
 
+    const miner: CreepLogic[] = [];
+    const transporter: CreepLogic[] = [];
+    const worker: CreepLogic[] = [];
+
 	_.forEach(Game.creeps, creep => {
-		const creepLogicRun = new CreepLogic(creep, creep.name);
-		if (!creep.spawning) {
-			creepLogicRun._run();
-		}
+        if (creep.spawning) {
+            return;
+        }
+
+        switch (creep.memory.job) {
+            case 'miner': { miner.push(new CreepLogic(creep, creep.name)); break;}
+            case 'transporter': { transporter.push(new CreepLogic(creep, creep.name)); break;}
+            case 'worker': { worker.push(new CreepLogic(creep, creep.name)); break;}
+            default: new CreepLogic(creep, creep.name)._run();
+        }
 	});
 
+    miner.forEach(creep => creep._run())
+    transporter.forEach(creep => creep._run())
+    worker.forEach(creep => creep._run())
 
 	/* cpuAfterCreep = Game.cpu.getUsed();
 	if (cpuAfterCreep > (cpuAfterRoom * 3)) {
@@ -67,6 +80,8 @@ export function loop() {
 	if (cpuAfterMemory > 20) {
 		log.info(`CPU-WARNING: ${cpuBeforeRoom} -> ${cpuAfterRoom} -> ${cpuAfterCreep} -> ${cpuAfterMemory}`);
 	} */
+
+	// log.info(`CPU: ${Game.cpu.getUsed()}`);
 
 }
 

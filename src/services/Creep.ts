@@ -1,5 +1,5 @@
 import { Role } from "../enums/role";
-import { log } from "../tools/Logger";
+import { log } from "../utilities/Logger";
 
 export class CreepService {
     private creepDictionary: { [role: number]: Creep[] };

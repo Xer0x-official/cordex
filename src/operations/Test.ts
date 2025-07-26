@@ -13,7 +13,7 @@ import { ManagerPriority } from "../managers/_Manager";
 import { OperationType } from "../enums/operationtype";
 import { IOperationData } from "./_OperationData";
 
-import { log } from "../tools/Logger";
+import { log } from "../utilities/Logger";
 
 export enum VictoryCondition {
     Gametime = 1

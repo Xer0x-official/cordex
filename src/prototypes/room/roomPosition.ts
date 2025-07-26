@@ -27,7 +27,10 @@ RoomPosition.prototype.getNearbyPositions = function (range: number = 1) {
 	for (x = startX; x <= this.x + range && x < 49; x++) {
 		for (y = startY; y <= this.y + range && y < 49; y++) {
 			if (x !== this.x || y !== this.y) {
-				positions.push(new RoomPosition(x, y, this.roomName));
+				positions.push(new RoomPosition(
+					(x < 0 ? 0 : (x > 49 ? 49 : x)),
+					(y < 0 ? 0 : (y > 49 ? 49 : y)),
+					this.roomName));
 			}
 		}
 	}
@@ -67,7 +70,8 @@ RoomPosition.prototype.pushCreepsAway = function() {
 
 	spaceAround.forEach((position: RoomPosition) => {
 		creepAtPosition = Game.rooms[this.roomName].lookForAt(LOOK_CREEPS, position);
-		if (creepAtPosition.length > 0) {
+
+		if (creepAtPosition.length > 0 && creepAtPosition[0].getJob() != 'miner') {
 			freeCreepPosition = creepAtPosition[0].pos.getFreePositions();
 			creepAtPosition[0].travelTo(freeCreepPosition[0]);
 			// console.log(`tried to push ${creepAtPosition[0].name} to ${freeCreepPosition[0]}`);

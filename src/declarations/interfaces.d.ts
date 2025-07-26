@@ -131,7 +131,8 @@ interface Room {
 	getMineral: () => any;
 	getBuildQueueTask: (name?: string) => any;
 	getPositionForBuild: (spaceNeeded?: number, sourcePoint?: RoomPosition[], rect?: boolean, buildingMatrix?: CostMatrix | undefined) => RoomPosition;
-	distanceTransform: (enableVisuals?: boolean, rect?: boolean, buildingMatrix?: CostMatrix, x1?: number, y1?: number, x2?: number, y2?: number) => any;
+	distanceTransform: (enableVisuals?: boolean, rect?: boolean, buildingMatrix?: CostMatrix, x1?: number, y1?: number, x2?: number, y2?: number) => CostMatrix;
+    fixedDistanceTransform: () => CostMatrix;
 	rectengularDistanceTransform: (x1?: number, y1?: number, x2?: number, y2?: number, buildingMatrix?: CostMatrix) => CostMatrix;
 	diagonalDistanceTransform: (x1?: number, y1?: number, x2?: number, y2?: number, buildingMatrix?: CostMatrix) => CostMatrix;
 	buildBlueprint: (startPos: RoomPosition, name: string, energyCap?: number) => buildBlueprint;
@@ -143,6 +144,11 @@ interface Room {
 	getSpawn: () => StructureSpawn;
 	getMySpawns: () => any;
 	testing: () => void;
+}
+
+interface IPlannedStructure {
+    type: string;
+    position: RoomPosition;
 }
 
 interface Structure {
@@ -158,6 +164,9 @@ interface RoomPosition {
 }
 
 interface Creep {
+	getResources: (room: Room, lookInRoom: boolean, colonieMemory: IColonieMemory, creep: Creep, targetObject: AnyStructure) => resourceSources;
+	setTransporterTarget: (creep: Creep, source: any, resourceSources: resourceSources, isPriorityTarget: boolean) => any;
+	setWorkerTarget: (creep: Creep, resourceSources: resourceSources, source: any) => any;
 	getResourceTarget: (resourceType?: "energy", lookInRoom?: boolean) => boolean;
 	loadResource: (resourceType?: "energy", lookInRoom?: boolean) => Id<Resource<ResourceConstant>> | Id<StructureStorage> | Id<StructureContainer> | null;
 	target: Id<Source> | Id<Mineral> | Id<AnyStructure> | Id<AnyCreep> | Id<Resource> | RoomPosition | null;
@@ -218,6 +227,7 @@ interface RoomMemory {
 	[name: string]: any;
 	origin: string;
 	isSetup: boolean;
+    buildingPlan: IPlannedStructure[];
 }
 
 interface IEmpireHostileRoom {
@@ -272,4 +282,9 @@ interface ICreepClass {
 
 interface Spawn {
 	pushCreepsAway: () => void;
+}
+
+interface RoomVisual {
+    structure: (x: number, y: number, type: string, opts={}) => RoomVisual;
+    // connectRoads: (opacity: number, color: ColorConstant) => RoomVisual | null;
 }

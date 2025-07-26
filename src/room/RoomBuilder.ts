@@ -32,16 +32,18 @@ export class RoomBuilder implements IBaseRoomClass {
 			case 7:
 				break;
 			case 6:
-				this.buildStructure('extensionPacks_3');
-				this.buildStructure('extensionPacks_4');
+				this.buildStructure('extensionPacks_6');
+				this.buildStructure('extensionPacks_5');
 			case 5:
-				this.buildStructure('extensionPacks_1');
-				this.buildStructure('extensionPacks_2');
+				this.buildStructure('extensionPacks_4');
 			case 4:
+                this.buildStructure('extensionPacks_3');
 				this.buildStructure('powerBunker');
 			case 3:
 				this.buildStructure('tower');
+                this.buildStructure('extensionPacks_2');
 			case 2:
+                this.buildStructure('extensionPacks_1');
 				this.buildStructure('bunker', new RoomPosition(this.spawn.pos.x - 3, this.spawn.pos.y - 1, this.name));
 			default:
 				this.buildPaths();
@@ -61,7 +63,6 @@ export class RoomBuilder implements IBaseRoomClass {
 			name = 'extensionPack';
 		}
 
-
 		if (!this.isBuildAlreadyInQueue(name)) {
 			const baseExtensions = this.room.baseExtensions;
 			let extension = undefined;
@@ -73,7 +74,7 @@ export class RoomBuilder implements IBaseRoomClass {
 				extension = baseExtensions[name];
 			}
 
-			const position = positionInit || new RoomPosition(extension.x - 2, extension.y - 2, this.name);
+			const position = positionInit || new RoomPosition(extension.x -1, extension.y -1, this.name);
 			const project = this.room.buildBlueprint(position, name);
 
 			if (project.structures.length > 0 && project.cost > 0) {
@@ -84,13 +85,15 @@ export class RoomBuilder implements IBaseRoomClass {
 
 
 					let lookForStuctures = _.filter(this.room.lookForAt(LOOK_STRUCTURES, project.structures[i].pos), structure =>
-						structure.structureType != project.structures[i].type
+						structure.structureType != project.structures[i].type ||
+                        (structure.structureType != STRUCTURE_ROAD && project.structures[i].type == STRUCTURE_CONTAINER) ||
+                        (structure.structureType != STRUCTURE_CONTAINER && project.structures[i].type == STRUCTURE_ROAD)
 					);
 					let lookConstructionSite = _.filter(this.room.lookForAt(LOOK_CONSTRUCTION_SITES, project.structures[i].pos), constructionSite =>
 						constructionSite.structureType != project.structures[i].type
 					);
 					_.forEach(lookForStuctures, structure => {
-						structure.destroy();
+                        structure.destroy();
 					});
 
 					_.forEach(lookConstructionSite, constructionSite => {
@@ -150,37 +153,34 @@ export class RoomBuilder implements IBaseRoomClass {
 		for (let i = 0; i < this.room.buildQueue.length; i++) {
 			_.remove((this.room.buildQueue[i].structures as buildBlueprintBuildElement[]), (structure) => {
 				const lookRoom = Game.rooms[structure.pos.roomName];
-				/* if (lookRoom && structure.type && lookRoom.lookForAt(LOOK_CONSTRUCTION_SITES, structure.pos).length <= 0) {
-					console.log(`${structure.type} (${Object.entries(structure.pos)}): wird gelöscht`)
-				} */
 				return !lookRoom || (structure.type && lookRoom.lookForAt(LOOK_CONSTRUCTION_SITES, structure.pos.x, structure.pos.y).length <= 0);
 			});
 
-			// console.log((this.room.buildQueue[i].structures as buildBlueprintBuildElement[]).length);
+			if (!this.room.buildQueue[i].structures) {
+				continue;
+			}
 
-			if (this.room.buildQueue[i].structures && (this.room.buildQueue[i].cost as number) <= 0 || (this.room.buildQueue[i].structures as buildBlueprintBuildElement[]).length <= 0) {
-				// const creepsWithTask = _.filter(Game.creeps, creep => creep.memory.task != null && creep.memory.task == this.room.buildQueue[i].name);
+			if ((this.room.buildQueue[i].structures as buildBlueprintBuildElement[]).length <= 0 ||
+				(this.room.buildQueue[i].name.includes("controller") && (this.room.buildQueue[i].cost as number) <= 0 )) {
 
-				if (this.room.buildQueue.length <= 1) {
-					let queueName = this.room.buildQueue[i].name;
+				_.remove(this.room.spawnQueue, creepSpawn => {
+					return creepSpawn.memory && creepSpawn.memory.task === this.room.buildQueue[i].name;
+				});
 
-					_.remove(this.room.spawnQueue, creepSpawn => {
-						return creepSpawn.memory && creepSpawn.memory.task === queueName;
+				// if (this.room.buildQueue.length <= 1) {
+				// 	_.remove(this.room.spawnQueue, creepSpawn => {
+				// 		return creepSpawn.memory && creepSpawn.memory.task === this.room.buildQueue[i].name;
+				// 	});
+				// } else {
+				// 	_.transform(this.room.spawnQueue, function (result: colonieQueueElement[], creepSpawn) {
+				// 		if (creepSpawn.memory && creepSpawn.memory.task === this.room.buildQueue[i].name) {
+				// 			creepSpawn.memory.task = '';
+				// 		}
+				// 		result.push(creepSpawn);
+				// 		return true;
+				// 	}, []);
+				// }
 
-					});
-				} else {
-					let queueName = this.room.buildQueue[i].name;
-
-					_.transform(this.room.spawnQueue, function (result: colonieQueueElement[], creepSpawn) {
-						if (creepSpawn.memory && creepSpawn.memory.task === queueName) {
-							creepSpawn.memory.task = '';
-						}
-						result.push(creepSpawn);
-						return true;
-					}, []);
-				}
-
-				// console.log(`Entferne (${this.room.buildQueue[i].name}): ${this.room.buildQueue[i].cost} - ${(this.room.buildQueue[i].structures as buildBlueprintBuildElement[]).length}`);
 				this.room.buildQueue = this.room.buildQueue.splice(i + 1, 1);
 			}
 		}
@@ -203,16 +203,8 @@ export class RoomBuilder implements IBaseRoomClass {
 
 		roomPaths = utils.getElementsByPattern(this.room.colonieMemory.paths, `${this.room.name}_.*`)
 		_.remove(roomPaths, function (path: IColoniePath) {
-			return path.built;
+			return path.built || path.path.length <= 0;
 		});
-
-		if (roomPaths.length <= 0) {
-			roomPaths = utils.getElementsByPattern(this.room.colonieMemory.paths, `.*`);
-
-			_.remove(roomPaths, function (path: IColoniePath) {
-				return path.built;
-			});
-		}
 
 		for (i = 0; i < roomPaths.length; i++) {
 			for (j = 0; j < roomPaths[i].path.length; j++) {
@@ -225,26 +217,21 @@ export class RoomBuilder implements IBaseRoomClass {
 				let constructionSitesAt = lookRoom.lookForAt(LOOK_CONSTRUCTION_SITES, buildPosition);
 				let structursAt = lookRoom.lookForAt(LOOK_STRUCTURES, buildPosition);
 
-				/* _.remove(structursAt, function (structure) {
-					return structure.structureType === STRUCTURE_ROAD;
-				}); */
-
 				if (structursAt.length > 0 || constructionSitesAt.length > 0 || buildPosition.isEdge()) {
 					continue;
-				} else if (buildData.cost !== undefined && buildData.structures !== undefined) {
-					if (buildData.cost + 300 > energy) {
-						this.room.buildQueue.push(buildData);
-						return;
-					}
+				}
+
+				if (buildData.cost !== undefined && buildData.structures !== undefined) {
 
 					buildData.cost += 300;
 					buildData.structures.push({ pos: buildPosition, type: STRUCTURE_ROAD });
 					lookRoom.createConstructionSite(buildPosition, STRUCTURE_ROAD);
 				}
 			}
-			if (buildData.structures && buildData.structures.length === 0) {
-				roomPaths[i].built = true;
-			}
+
+			// if (buildData.structures && buildData.structures.length === 0) {
+			// 	roomPaths[i].built = true;
+			// }
 		}
 		//let base = Game.rooms[Memory.bases[this.room.name] || ]
 		if (buildData.structures && buildData.structures.length > 0) {

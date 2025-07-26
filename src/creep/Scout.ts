@@ -20,7 +20,7 @@ export class Scout implements ICreepClass {
 				if (route !== ERR_NO_PATH) {
 					let range = route.length
 					let alreadyScouted = Object.keys(this.creep.room.colonieMemory.remotes).includes(room);
-					return range <= 3 && !alreadyScouted;
+					return range <= 2 && !alreadyScouted;
 				}
 				return false;
 			});
@@ -45,7 +45,11 @@ export class Scout implements ICreepClass {
 		const roomName = this.creep.room.name;
 
 		if (this.memory.scoutingTargets.includes(roomName)) {
-			this.creep.room.setupRoom(true, this.memory.origin);
+
+			if (this.creep.room.find(FIND_HOSTILE_CREEPS).length <= 0) {
+				this.creep.room.setupRoom(true, this.memory.origin);
+			}
+
 			this.memory.scoutingTargets.splice(this.memory.scoutingTargets.indexOf(roomName), 1)
 			if (roomName === this.creep.memory.target) {
 				this.creep.memory.target = null;

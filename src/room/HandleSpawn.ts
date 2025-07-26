@@ -1,4 +1,4 @@
-import { log } from "tools/Logger";
+import { log } from "utilities/Logger";
 import * as utils from "../utilities";
 import { RoomLogic } from "./RoomLogic";
 
@@ -190,7 +190,7 @@ export class HandleSpawn {
 
 				case "transporter":
 					//neededCreeps = Math.min(Math.floor((this.stats.resourceCount * 2 + (this.stats.roles.worker / 4)) - this.stats.roles.transporter), 20);
-					neededCreeps = Math.min(Math.floor(this.stats.resourceCount * Memory.settings.transporterPerSource) - this.stats.roles.transporter, 20);
+					neededCreeps = Math.floor(this.stats.resourceCount * Memory.settings.transporterPerSource) - this.stats.roles.transporter;
 					break;
 
 				case "worker": {

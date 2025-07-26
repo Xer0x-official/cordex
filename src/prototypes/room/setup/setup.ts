@@ -11,18 +11,19 @@ Room.prototype.setupRoom = function (isRemote: boolean = false, origin: string =
 
 	this.memory.origin = origin;
 	this.memory.isSetup = true;
+    this.memory.buildingPlan = [];
 
 	if (!isRemote) {
 		setupMemory(this.name);
 		setupProperties(this, isRemote);
 		setupFlags(this);
-		setupPaths(this, Game.getObjectById(this.colonieMemory.spawns[0]) as StructureSpawn);
 		setupBuildings(this);
+		// setupPaths(this, Game.getObjectById(this.colonieMemory.spawns[0]) as StructureSpawn);
 	} else {
 		this.colonieMemory.remotes.push(this.name);
 		setupFlags(this);
-		setupPaths(this, Game.getObjectById(this.colonieMemory.spawns[0]) as StructureSpawn, origin);
 		setupProperties(this, isRemote);
+		// setupPaths(this, Game.getObjectById(this.colonieMemory.spawns[0]) as StructureSpawn, origin);
 	}
 
 	console.log(`ROOM (${this.name}): Done setting up the room`);

@@ -132,41 +132,35 @@ Room.prototype.getBuildQueueTask = function getBuildQueueTask(name = '') {
  */
 
 Room.prototype.getPositionForBuild = function getPositionForBuild(spaceNeeded = 5, sourcePoint: RoomPosition[] = [this.controller.pos], rect = true, buildingMatrix: CostMatrix | undefined = undefined) {
-	const floodMatrix = this.floodFill(sourcePoint, false);
-	const distanceMatrix = this.distanceTransform(false, rect, buildingMatrix);
+	const floodMatrix: CostMatrix = this.floodFill(sourcePoint, false);
+	const distanceMatrix: CostMatrix = this.distanceTransform(false, rect, buildingMatrix);
 
-	const centerOffset = Math.floor((spaceNeeded + 2) / 2);
-	const checkMatrix = generateCheckMatrix(spaceNeeded + 2);
+	const centerOffset = Math.floor(spaceNeeded / 2);
+	// const checkMatrix = generateCheckMatrix(rect, spaceNeeded);
 
 	let possibleBuildingSpots = [];
 	let x, y, dx, dy, centerX, centerY;
 	let positionWeight = 0;
 
 	for (y = 44; y >= 5; --y) {
-		posX: for (x = 44; x >= 5; --x) {
+		for (x = 44; x >= 5; --x) {
+            let canBuild = false;
+            let buildX: number, buildY: number;
 			if (rect) {
+                buildX = x;
+                buildY = y;
 				positionWeight = distanceMatrix.get(x, y);
-				if (positionWeight >= spaceNeeded) {
-					possibleBuildingSpots.push({ pos: new RoomPosition(x, y, this.name), distanceFromSource: floodMatrix.get(x, y) });
-				}
+                canBuild = positionWeight >= spaceNeeded;
 			} else {
-
-				centerX = x - centerOffset;
-				centerY = y - centerOffset;
-
-				for (dx = centerX; dx < centerX + checkMatrix.length; dx++) {
-					for (dy = centerY; dy < centerY + checkMatrix.length; dy++) {
-						const checkX = dx - centerX;
-						const checkY = dy - centerY;
-
-						if (checkMatrix[checkX][checkY] === 1 && distanceMatrix.get(dx, dy) !== 1) {
-							continue posX;
-						}
-					}
-				}
-
-				possibleBuildingSpots.push({ pos: new RoomPosition(x, y, this.name), distanceFromSource: floodMatrix.get(x, y) });
+                buildX = x - centerOffset;
+                buildY = y - centerOffset;
+                canBuild = distanceMatrix.get(x, y) >= (spaceNeeded - centerOffset);
 			}
+
+            if (canBuild) {
+                possibleBuildingSpots.push({ pos: new RoomPosition(buildX, buildY, this.name), distanceFromSource: floodMatrix.get(x, y) });
+            }
+
 		}
 	}
 
@@ -174,20 +168,64 @@ Room.prototype.getPositionForBuild = function getPositionForBuild(spaceNeeded = 
 	return possibleBuildingSpots[0].pos;
 }
 
-Room.prototype.distanceTransform = function (enableVisuals = false, rect = true, buildingMatrix: CostMatrix = this.buildingMatrix , x1 = 0, y1 = 0, x2 = roomDimensions - 1, y2 = roomDimensions - 1) {
-	let transform = undefined;
+Room.prototype.distanceTransform = function (enableVisuals = false, rect = true, buildingMatrix: CostMatrix = this.buildingMatrix , x1 = 0, y1 = 0, x2 = roomDimensions - 1, y2 = roomDimensions - 1): CostMatrix {
+	// let transform = undefined;
 
-	if (rect) {
-		transform = this.rectengularDistanceTransform(x1, y1, x2, y2, buildingMatrix);
-	} else {
-		transform = this.diagonalDistanceTransform(x1, y1, x2, y2, buildingMatrix);
-	}
+	// if (rect) {
+	// 	transform = this.rectengularDistanceTransform(x1, y1, x2, y2, buildingMatrix);
+	// } else {
+	// 	transform = this.diagonalDistanceTransform(x1, y1, x2, y2, buildingMatrix);
+	// }
+
+    let transform: CostMatrix = this.fixedDistanceTransform();
 
 	if (enableVisuals) {
 		this.createVisual(x1, y1, x2, y2, transform);
 	}
 
 	return transform;
+};
+
+Room.prototype.fixedDistanceTransform = function() {
+    const D = new PathFinder.CostMatrix();
+    const INF = 1e6;
+
+    // Initialisierung
+    for (let y = 0; y < 50; y++) {
+        for (let x = 0; x < 50; x++) {
+            const isObstacle = this.getTerrain().get(x, y) > 0 || this.buildingMatrix.get(x, y) > 10;
+            D.set(x, y, isObstacle ? 0 : INF);
+        }
+    }
+
+    // Gewichte
+    const w1 = 1, w2 = Math.SQRT2;
+
+    // Vorwärtspass
+    for (let y = 0; y < 50; y++) {
+        for (let x = 0; x < 50; x++) {
+            let v = D.get(x, y);
+            if (x > 0) v = Math.min(v, D.get(x - 1, y) + w1);
+            if (y > 0)       v = Math.min(v, D.get(x,y-1)   + w1);
+            if (x>0 && y>0)  v = Math.min(v, D.get(x-1,y-1) + w2);
+            if (x<49 && y>0) v = Math.min(v, D.get(x+1,y-1) + w2);
+            D.set(x,y, v);
+        }
+    }
+
+    // Rückwärtspass
+    for (let y = 49; y >= 0; y--) {
+        for (let x = 49; x >= 0; x--) {
+            let v = D.get(x,y);
+            if (x < 49)      v = Math.min(v, D.get(x+1,y)   + w1);
+            if (y < 49)      v = Math.min(v, D.get(x,y+1)   + w1);
+            if (x<49 && y<49) v = Math.min(v, D.get(x+1,y+1) + w2);
+            if (x>0  && y<49) v = Math.min(v, D.get(x-1,y+1) + w2);
+            D.set(x,y, v);
+        }
+    }
+
+    return D;
 };
 
 
@@ -201,8 +239,7 @@ Room.prototype.rectengularDistanceTransform = function (x1 = 0, y1 = 0, x2 = roo
 
 	const planingMatrix = (buildingMatrix ? buildingMatrix : new PathFinder.CostMatrix());
 
-
-	// Fill CostMatrix with default terrain costs for future analysis:
+    // Fill CostMatrix with default terrain costs for future analysis:
 	for (let y = 0; y < 50; y++) {
 		for (let x = 0; x < 50; x++) {
 			const tile = terrain.get(x, y);
@@ -580,10 +617,12 @@ function findPositionsInsideRect(rect: { x1: number, y1: number, x2: number, y2:
 	return positions
 }
 
-function generateCheckMatrix(size: number) {
-	if (size % 2 === 0) {
+function generateCheckMatrix(rect: boolean, size: number) {
+	if (rect) {
+        console.log("square", size);
 		return generateSymetricSquareMatrix(size);
 	} else {
+        console.log("diagonal", size);
 		return generateDiamondMatrix(size);
 	}
 }

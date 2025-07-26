@@ -1,4 +1,4 @@
-import "../prototypes/creep/creep";
+import "../prototypes/creep/creep/creep";
 import "../prototypes/room/room";
 import "../prototypes/room/roomPosition";
 import { MemoryManager } from "./Memory";
@@ -11,7 +11,7 @@ import { UpgradeManager } from "./Upgrade";
 import { CreepService } from "../services/Creep";
 import { RoomService } from "../services/Room";
 import { LogLevel } from "../enums/loglevel";
-import { log } from "../tools/Logger";
+import { log } from "../utilities/Logger";
 import { Manager, ManagerPriority } from "./_Manager";
 
 export function run() {

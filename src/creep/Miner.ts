@@ -16,7 +16,7 @@ export class Miner implements ICreepClass {
 	}
 
 	_run() {
-		if (!this.memory.target || this.memory.target === null) {
+		if (!this.memory.target) {
 			let target = this.getSourceTarget();
 
 			if (!target) {
@@ -29,11 +29,11 @@ export class Miner implements ICreepClass {
 		}
 
 		// let targetObject = Game.getObjectById(this.creep.target as Id<Source>);
-		let target = this.creep.room.colonieMemory.resources.energy[this.memory.target as Id<Source>];
+        let target = this.creep.room.colonieMemory.resources.energy[this.memory.target as Id<Source>];
 
 		if (this.creep.room && target.pos.roomName !== this.creep.room.name) {
 			this.creep.say('🗺️');
-			this.creep.harvestTarget(this.creep.room.colonieMemory.resources.energy[this.memory.target as Id<Source>], true);
+            this.creep.harvestTarget(this.creep.room.colonieMemory.resources.energy[this.memory.target as Id<Source>], true);
 		} else {
 			let targetObject = Game.getObjectById(this.creep.target as Id<Source>);
 			if (targetObject !== null) {

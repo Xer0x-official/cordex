@@ -1,7 +1,7 @@
 import * as OperationTest from "../operations/Test";
 import { IOperationData } from "../operations/_OperationData";
 import { OperationType } from "../enums/operationtype";
-import { log } from "../tools/Logger";
+import { log } from "../utilities/Logger";
 
 function addOperation(operation: IOperationData) {
     if (Memory.operations === undefined) {

@@ -41,6 +41,10 @@ export class Worker implements ICreepClass{
     }
 
 	_run() {
+		if (this.creep.spawning) {
+			return;
+		}
+
 		while (this.state !== State.End) {
 			this.runAutomat();
 		}
@@ -227,33 +231,60 @@ export class Worker implements ICreepClass{
 		return this.creep.room.buildQueue[0].name;
 	}
 
+	setTask(taskName: string) {
+		if (this.creep.room.getBuildQueueTask(taskName)) {
+			this.creep.memory.task = taskName;
+		}
+	}
+
 	findTarget() {
-		const task = this.getTask();
 		const buildQueue = this.creep.room.buildQueue;
-		let taskStructures = [];
+		let task = this.getTask();
+		let taskStructures: AnyStructure[] = [];
 		let i = 0;
 
-		if (task === '' && buildQueue.length <= 0) {
+		if (task === '' && buildQueue.length <= 0 || !buildQueue) { // || buildQueue.length <= 1
 			return false;
 		} else {
 			this.memory.task = task;
 		}
 
-		if (!buildQueue || buildQueue.length < 1) {
+		let queueTask = this.creep.room.getBuildQueueTask(task);
+
+		if (queueTask.structures.length <= 0 && buildQueue.length <= 1) {
 			return false;
 		}
 
-		if (task.includes('controller') && this.creep.room.getBuildQueueTask(task).structures.length === 1) {
-			if (this.creep.room.controller) {
-				this.memory.target = this.creep.room.controller.id;
-				return true;
-			} else {
-				return false;
-			}
-
+		if (queueTask.structures.length <= 0 && buildQueue.length > 1) {
+			let filteredTasks = buildQueue.filter((element) => element.name != task);
+			this.setTask(filteredTasks[0].name);
 		}
 
+		// if (task.includes('controller')) {
+		// 	if (this.creep.room.controller) {
+		// 		this.memory.target = this.creep.room.controller.id;
+		// 		return true;
+		// 	} else {
+		// 		return false;
+		// 	}
+
+		// }
+
 		taskStructures = this.creep.room.getBuildQueueTask(task).structures;
+		try {
+			if (!task.includes('controller')) {
+				taskStructures.sort((structureA: AnyStructure, structureB: AnyStructure) => {
+					return (structureA instanceof StructureContainer ? (structureB instanceof StructureContainer ? 0 : -1) : (structureB instanceof StructureContainer ? 1 : 0));
+				});
+
+				taskStructures.sort((structureA: AnyStructure, structureB: AnyStructure) => {
+					return (structureA instanceof StructureRoad ? (structureB instanceof StructureRoad ? 0 : 1) : (structureB instanceof StructureRoad ? -1 : 0));
+				});
+			}
+		} catch {
+			console.log("WORKER: Fehler beim sortieren.");
+		}
+
 
 		for (i = 0; i < taskStructures.length; i++) {
 			const lookRoom = Game.rooms[taskStructures[i].pos.roomName];
@@ -263,11 +294,17 @@ export class Worker implements ICreepClass{
 
 			const positionAtTarget = lookRoom.lookForAt(LOOK_CONSTRUCTION_SITES, taskStructures[i].pos.x, taskStructures[i].pos.y);
 
-			if (positionAtTarget.length > 0) {
+			if (positionAtTarget.length && positionAtTarget.length > 0) {
 				this.memory.target = positionAtTarget[0].id;
 				return true;
+			} else if (task.includes('controller') && lookRoom.lookForAt(LOOK_STRUCTURES, taskStructures[i].pos.x, taskStructures[i].pos.y).length >= 1) {
+				if (this.creep.room.controller) {
+					this.memory.target = this.creep.room.controller.id;
+					return true;
+				} else {
+					return false;
+				}
 			}
-
 		}
 
 		return false;

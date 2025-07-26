@@ -3,7 +3,7 @@ import { CreepService } from "../services/Creep";
 import { RoomService } from "../services/Room";
 import { OperationType } from "../enums/operationtype";
 import { IOperationData } from "../operations/_OperationData";
-import { log } from "../tools/Logger";
+import { log } from "../utilities/Logger";
 import { Manager, ManagerPriority } from "./_Manager";
 
 export class OperationManager extends Manager {

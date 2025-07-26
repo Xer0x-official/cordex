@@ -94,6 +94,7 @@ export class Worker implements ICreepClass {
 	upgradeController() {
 		if (this.creep.store.getUsedCapacity(RESOURCE_ENERGY) == 0) {
 			this.creep.loadResource(RESOURCE_ENERGY, true);
+			return;
 		} else {
 			const colonieController = Game.rooms[this.memory.origin].controller;
 			if (colonieController && this.creep.moveToTarget(this.creep.upgradeController(colonieController), colonieController) == OK) {
@@ -111,11 +112,11 @@ export class Worker implements ICreepClass {
 		let targetObject;
 
 		if (this.creep.store.getUsedCapacity(RESOURCE_ENERGY) === 0 && this.creep.target && this.creep.target !== null) {
-			if (this.creep.room.name !== this.creep.memory.origin) {
-				this.creep.loadResource(RESOURCE_ENERGY);
-			} else {
-				this.creep.loadResource(RESOURCE_ENERGY, true);
-			}
+			// if (this.creep.room.name !== this.creep.memory.origin) {
+			// 	this.creep.loadResource(RESOURCE_ENERGY);
+			// } else {
+			// 	this.creep.loadResource(RESOURCE_ENERGY, true);
+			// }
 			return;
 		}
 
