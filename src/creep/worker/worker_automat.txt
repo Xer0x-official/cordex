@@ -1,0 +1,93 @@
+Graphviz online
+
+digraph G1 {
+
+
+    start [shape=circle, label="Start"];
+    start -> hatZiel
+
+    hatZiel -> hatGenugEnergie [label="ja"];
+
+    hatZiel -> sucheZiel [label="nein"];
+
+
+    sucheZiel -> hatGenugEnergie [label="gefunden"];
+
+    sucheZiel -> sucheZiel [label="3x wiederholen"];
+
+    hatGenugEnergie -> sucheEnergieQuelle [label="nein"];
+
+    hatGenugEnergie -> istZielInDerNähe [label="ja"];
+
+
+    istZielInDerNähe -> brauchZielImmerNochEnergie [label="nein"];
+    istZielInDerNähe -> ausführen [label="ja / bauen"];
+
+
+    brauchZielImmerNochEnergie -> ausführen [label="ja / Bewegung"];
+
+    brauchZielImmerNochEnergie -> sucheZiel [label="nein"];
+
+
+    sucheEnergieQuelle -> sucheEnergieQuelle [label="3x wiederholen"];
+
+    sucheEnergieQuelle -> end [label="nicht gefunden"];
+
+    sucheEnergieQuelle -> istInDerNähe [label="gefunden"];
+
+    istInDerNähe -> ausführen [label="aufnehmen"];
+
+    istInDerNähe -> IstQuelleNochValide [label="nein"];
+
+    IstQuelleNochValide -> sucheEnergieQuelle [label="nein"];
+
+    IstQuelleNochValide -> ausführen [label="Ja / Bewegung"];
+
+    sucheZiel -> end [label="nicht gefunden"];
+
+    ausführen -> end
+
+    end [shape=circle, label="end"];
+}
+
+digraph G2 {
+
+	// Startzustand
+    start [shape=circle, label="Start"];
+
+    // Zustand: Hat Ziel
+    hatZiel -> hatGenugEnergie [label="ja"];
+    hatZiel -> sucheZiel [label="nein"];
+
+    // Zustand: Suche Ziel
+    sucheZiel -> hatGenugEnergie [label="gefunden"];
+    sucheZiel -> sucheZiel [label="3x wiederholen"];
+    sucheZiel -> end [label="nicht gefunden"];
+
+    // Zustand: Hat genug Energie
+    hatGenugEnergie -> sucheEnergieQuelle [label="nein"];
+    hatGenugEnergie -> istZielInDerNähe [label="ja"];
+
+    // Zustand: Ist Ziel in der Nähe
+    istZielInDerNähe -> ausführen [label="ja / bauen"];
+    istZielInDerNähe -> brauchZielImmerNochEnergie [label="nein"];
+
+    // Zustand: Braucht Ziel immer noch Energie
+    brauchZielImmerNochEnergie -> ausführen [label="ja / Bewegung"];
+    brauchZielImmerNochEnergie -> sucheZiel [label="nein"];
+
+    // Zustand: Suche Energiequelle
+    sucheEnergieQuelle -> sucheEnergieQuelle [label="3x wiederholen"];
+    sucheEnergieQuelle -> end [label="nicht gefunden"];
+    sucheEnergieQuelle -> istInDerNähe [label="gefunden"];
+
+    // Zustand: Ist Energiequelle in der Nähe
+    istInDerNähe -> ausführen [label="aufnehmen"];
+    istInDerNähe -> sucheEnergieQuelle [label="nein"];
+
+    // Zustand: Ausführen der Aktion
+    ausführen -> end;
+
+    // Endzustand
+    end [shape=circle, label="End"];
+}

@@ -1,0 +1,30 @@
+{
+	"compilerOptions": {
+		"module": "esnext",
+		"lib": [
+			"es2018"
+		],
+		"target": "es2018",
+		"moduleResolution": "Node",
+		"outDir": "dist",
+		"baseUrl": "src/",
+		"sourceMap": false,
+		"strict": true,
+		"experimentalDecorators": true,
+		"noImplicitReturns": false,
+		"noImplicitThis": false,
+		"strictPropertyInitialization": false,
+		"allowSyntheticDefaultImports": true,
+		"allowUnreachableCode": false,
+		"allowUnusedLabels": true,
+		"skipLibCheck": true,
+		"removeComments": true,
+	},
+	"include": [
+		"src/**/*.ts",
+		"src/declarations/*.d.ts", // Pfade zu deinen TypeScript-Dateien
+	],
+	"exclude": [
+		"node_modules",
+	]
+}
