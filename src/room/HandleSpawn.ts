@@ -54,7 +54,7 @@ export class HandleSpawn {
 
 			this.spawnQueue.push({
 				bodyParts: [MOVE, MOVE, MOVE],
-                name: `scout_W5N8_${Game.time}`,
+                name: `scout_${this.room.name}_${Game.time}`,
                 memory: {
 					job: "scout",
 					working: false,

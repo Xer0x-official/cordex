@@ -356,7 +356,6 @@ export class Transporter implements ICreepClass {
                 // Neu: Versuche zunächst, Energie an anderen Transporter zu übergeben
                 if (this.attemptTransferToTransporter()) {
                     // wir haben die Energie übergeben; Aufgabe beendet, daher break
-                    console.log("transfer transfer");
                     break;
                 }
 
@@ -376,7 +375,6 @@ export class Transporter implements ICreepClass {
 			case Execute.MoveTarget: {
                 // Neu: Wenn wir noch nicht beim Ziel sind, prüfen, ob ein anderer Transporter vor uns steht
                 if (this.attemptTransferToTransporter()) {
-                    console.log("move transfer");
                     // Übergabe hat stattgefunden; wir müssen nicht mehr zum Ziel laufen
                     break;
                 }
@@ -444,10 +442,6 @@ export class Transporter implements ICreepClass {
 
         const result = this.creep.transfer(recipient, RESOURCE_ENERGY, amount);
         if (result === OK) {
-            // Aufgabe bei uns als erledigt markieren
-            if (this.memory.amountAssigned !== undefined) {
-                this.memory.amountAssigned -= amount;
-            }
             // optional: dem Empfänger mitteilen, dass er mehr liefern soll
             if (recipient.memory.amountAssigned !== undefined) {
                 recipient.memory.amountAssigned += amount;
