@@ -212,12 +212,14 @@ export class HandleSpawn {
 						if ((this.buildQueue[i].cost as number) > 0) {
 							neededCreeps = this.getWorkerForTask(this.buildQueue[i].name);
 
+                            // console.log(`neededWorker: ${neededCreeps}`);
 							if (neededCreeps > 0) {
 								task = this.buildQueue[i].name;
 								break;
 							}
 						}
 					}
+                    break;
 				}
 
                 case 'defender': {
@@ -268,7 +270,7 @@ export class HandleSpawn {
 				}
 			});
 
-			for (j = 0; j < neededCreeps; j++) {
+			for (j = 0; j < Math.min(1, neededCreeps); j++) {
 				const creepName = `${jobs[i]}_${this.room.name}_${Game.time + j}`;
 
 				console.log(`SPAWN (${neededCreeps}): Added creep ${creepName} with Task ${task} to spawnQueue`);

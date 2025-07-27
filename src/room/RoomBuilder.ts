@@ -29,9 +29,9 @@ export class RoomBuilder implements IBaseRoomClass {
 
 		switch (this.rcl) {
 			case 8:
-				break;
+				// break;
 			case 7:
-				break;
+				// break;
 			case 6:
 				this.buildStructure('extensionPacks_6');
 				this.buildStructure('extensionPacks_5');
@@ -129,45 +129,107 @@ export class RoomBuilder implements IBaseRoomClass {
 		}
 	}
 
-	buildController() {
-		if (!canScheduleNewProject(this.room)) {
-			return; // Abbruch – keine neuen Projekte starten
-		}
+	// buildController() {
+	// 	if (!canScheduleNewProject(this.room)) {
+	// 		return; // Abbruch – keine neuen Projekte starten
+	// 	}
+    //
+	// 	if (!this.isBuildAlreadyInQueue('controller') && (this.room.controller && this.room.controller.ticksToDowngrade < 500 || this.room.stats.totalAvailableEnergy > this.controllerUpgradeThreshhold)) {
+	// 		let controllerUpgradeCost = (Math.floor(this.room.stats.totalAvailableEnergy / this.controllerUpgradeThreshhold) * this.controllerUpgradeThreshhold) * 0.75;
+	// 		controllerUpgradeCost = controllerUpgradeCost > (CONTROLLER_LEVELS[this.rcl] * 0.25) ? (CONTROLLER_LEVELS[this.rcl] * 0.25) : controllerUpgradeCost;
+	// 		console.log(`ROOM: Tried to add buildingProject controller_${Game.time} with ${controllerUpgradeCost} costs`);
+	// 		const roomController = this.room.controller;
+	// 		let containerAroundController: number = 0;
+	// 		if (roomController) {
+	// 			containerAroundController = this.room.lookForAtArea(LOOK_STRUCTURES, roomController.pos.x -2, roomController.pos.y -2, roomController.pos.x +2, roomController.pos.y +2, true)
+	// 			.filter(structure => structure && structure.structure.structureType === STRUCTURE_CONTAINER).length;
+	// 		}
+    //
+	// 		const buildData: buildQueueElement = {
+    //             name: `controller_${Game.time}`,
+    //             cost: controllerUpgradeCost,
+    //             structures: [{ pos: this.room.controller?.pos, type: undefined } as buildBlueprintBuildElement],
+    //             neededCreeps: -1,
+    //             pos: new RoomPosition(0, 0, this.room.name),
+    //             id: ""
+    //         };
+    //
+	// 		if (roomController && containerAroundController <= 0 && this.rcl >= 2) {
+	// 			const spawn = Game.getObjectById(this.room.colonieMemory.spawns[0]);
+	// 			const containerPosition = this.findOptimalContainerPosition(spawn as StructureSpawn, roomController);
+    //
+	// 			if (containerPosition) {
+	// 				buildData.cost += 5000;
+	// 				buildData.structures.unshift({pos: containerPosition, type: STRUCTURE_CONTAINER});
+	// 				this.room.createConstructionSite(containerPosition, STRUCTURE_CONTAINER);
+	// 			}
+	// 		}
+    //
+	// 		this.room.buildQueue.push(buildData);
+	// 	}
+	// }
 
-		if (!this.isBuildAlreadyInQueue('controller') && (this.room.controller && this.room.controller.ticksToDowngrade < 500 || this.room.stats.totalAvailableEnergy > this.controllerUpgradeThreshhold)) {
-			let controllerUpgradeCost = (Math.floor(this.room.stats.totalAvailableEnergy / this.controllerUpgradeThreshhold) * this.controllerUpgradeThreshhold) * 0.75;
-			controllerUpgradeCost = controllerUpgradeCost > (CONTROLLER_LEVELS[this.rcl] * 0.25) ? (CONTROLLER_LEVELS[this.rcl] * 0.25) : controllerUpgradeCost;
-			console.log(`ROOM: Tried to add buildingProject controller_${Game.time} with ${controllerUpgradeCost} costs`);
-			const roomController = this.room.controller;
-			let containerAroundController: number = 0;
-			if (roomController) {
-				containerAroundController = this.room.lookForAtArea(LOOK_STRUCTURES, roomController.pos.x -2, roomController.pos.y -2, roomController.pos.x +2, roomController.pos.y +2, true)
-				.filter(structure => structure && structure.structure.structureType === STRUCTURE_CONTAINER).length;
-			}
+    containerNearController(): boolean {
+        let containerAroundController: number = 0;
+        let roomController = this.room.controller;
+        if (roomController) {
+            containerAroundController = this.room.lookForAtArea(LOOK_STRUCTURES, roomController.pos.x -2, roomController.pos.y -2, roomController.pos.x +2, roomController.pos.y +2, true)
+            .filter(structure => structure && structure.structure.structureType === STRUCTURE_CONTAINER).length;
+        }
 
-			const buildData: buildQueueElement = {
-                name: `controller_${Game.time}`,
-                cost: controllerUpgradeCost,
-                structures: [{ pos: this.room.controller?.pos, type: undefined } as buildBlueprintBuildElement],
-                neededCreeps: -1,
-                pos: new RoomPosition(0, 0, this.room.name),
-                id: ""
-            };
+        return containerAroundController > 0;
+    }
 
-			if (roomController && containerAroundController <= 0 && this.rcl >= 2) {
-				const spawn = Game.getObjectById(this.room.colonieMemory.spawns[0]);
-				const containerPosition = this.findOptimalContainerPosition(spawn as StructureSpawn, roomController);
+    buildController(): void {
+        const controller = this.room.controller;
+        if (!controller || this.isBuildAlreadyInQueue('controller')) return;
+        if (!canScheduleNewProject(this.room)) return;
 
-				if (containerPosition) {
-					buildData.cost += 5000;
-					buildData.structures.unshift({pos: containerPosition, type: STRUCTURE_CONTAINER});
-					this.room.createConstructionSite(containerPosition, STRUCTURE_CONTAINER);
-				}
-			}
+        // 1. Containerbau forcieren, falls Level ≥ 2 und keiner vorhanden
+        if (this.rcl >= 2 && !this.containerNearController()) {
+            const containerPos = this.findOptimalContainerPosition(this.spawn, controller);
+            if (containerPos) {
+                const containerProject: buildQueueElement = {
+                    name: `controller_container_${Game.time}`,
+                    cost: 5000,
+                    structures: [{ pos: containerPos, type: STRUCTURE_CONTAINER }],
+                    neededCreeps: -1,
+                    pos: new RoomPosition(0, 0, this.room.name),
+                    id: ""
+                };
+                this.room.buildQueue.push(containerProject);
+                return; // erst Container bauen
+            }
+        }
 
-			this.room.buildQueue.push(buildData);
-		}
-	}
+        // 2. Upgradebudget festlegen
+        const remaining = controller.progressTotal - controller.progress;
+        let invest: number;
+        if (controller.level < 4) {
+            // Frühphase: möglichst schnell hochleveln
+            invest = Math.min(remaining, controller.progressTotal * 0.25);
+        } else {
+            // Später: bei Downgrade‑Gefahr oder Energieüberschuss upgraden
+            const downgradeThreshold = CONTROLLER_DOWNGRADE[this.rcl] * 0.5;
+            if (controller.ticksToDowngrade > downgradeThreshold &&
+                this.room.stats.totalAvailableEnergy < this.controllerUpgradeThreshhold) {
+                return; // kein Upgrade nötig
+            }
+            invest = Math.min(remaining, controller.progressTotal * 0.10);
+        }
+
+        if (invest <= 0) return;
+
+        const upgradeProject: buildQueueElement = {
+            name: `controller_${Game.time}`,
+            cost: invest,
+            structures: [{ pos: controller.pos, type: undefined } as buildBlueprintBuildElement],
+            neededCreeps: -1,
+            pos: new RoomPosition(0, 0, this.room.name),
+            id: ""
+        };
+        this.room.buildQueue.push(upgradeProject);
+    }
 
 	checkBuildProgress() {
 		for (let i = 0; i < this.room.buildQueue.length; i++) {
