@@ -105,7 +105,24 @@ export class TransportManager {
             if (originObj instanceof Resource) return originObj.amount > 0;
             if ('store' in originObj) return originObj.store.getUsedCapacity(RESOURCE_ENERGY) > 0;
             return true;
-        }).concat(requests);
+        }).concat(requests).sort((a, b) => {
+            const objA = Game.getObjectById(a.originId);
+            const objB = Game.getObjectById(b.originId);
+            if (!objA || !objB) return 0;
+
+            // 1. Typ-Priorität: Resource (=1) vor Struktur (=2)
+            if (a.priority !== b.priority) {
+                return a.priority - b.priority;
+            }
+
+            // 2. Innerhalb derselben Gruppe: Sortierung nach Menge (desc)
+            const getAmt = (o: Resource<ResourceConstant> | StructureWithStorage) =>
+                o instanceof Resource
+                    ? o.amount
+                    : o.store.getUsedCapacity(RESOURCE_ENERGY);
+
+            return getAmt(objB) - getAmt(objA);
+        });
 
         // Aktualisiere Memory
         // Memory.transportRequests = Memory.transportRequests!.filter(
@@ -186,7 +203,8 @@ export class TransportManager {
                 const destPos = Game.getObjectById(req.possibleDestinations[0])?.pos ?? originObj.pos;
                 const cost =
                     creep.pos.getRangeTo(originObj.pos) +
-                    originObj.pos.getRangeTo(destPos);
+                    originObj.pos.getRangeTo(destPos) +
+                    (originObj instanceof StructureContainer || originObj instanceof StructureStorage ? 200 : 0);
                 costs[i][j] = cost;
             }
         }

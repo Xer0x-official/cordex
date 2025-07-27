@@ -338,15 +338,18 @@ export class Transporter implements ICreepClass {
 		switch (this.execute) {
             case Execute.Pickup: {
                 const source: any = Game.getObjectById(this.memory.energyTarget!);
-                if (source) {
-                    const amount = Math.min(this.memory.amountAssigned!, this.creep.store.getFreeCapacity());
-                    if (source instanceof Resource) {
-                        this.creep.pickup(source);
-                    } else {
-                        this.creep.withdraw(source, RESOURCE_ENERGY, amount);
-                    }
-                } else {
+                if (!source) {
                     this.clearTask();
+                }
+
+				const amount = Math.min(this.memory.amountAssigned!, this.creep.store.getFreeCapacity());
+				if (source instanceof Resource) {
+					this.creep.pickup(source);
+				} else {
+					let withdraw = this.creep.withdraw(source, RESOURCE_ENERGY, amount);
+					if (withdraw == ERR_NOT_ENOUGH_ENERGY) {
+                        this.clearTask();
+                    }
                 }
                 break;
             }
