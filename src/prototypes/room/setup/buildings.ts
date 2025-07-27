@@ -47,17 +47,17 @@ export function setupBuildings(room: Room) {
 			case 'lab': {
 				baseExtensions[key] = room.getPositionForBuild(5, [new RoomPosition(startPosition.x, startPosition.y, room.name)], false, buildingMatrix);
 				position = baseExtensions[key];
-				offset = -2;
+				offset = -1;
 				break;
 			}
 			case 'powerBunker': {
-                baseExtensions[key] = room.getPositionForBuild(3, [new RoomPosition(startPosition.x, startPosition.y, room.name)], true, buildingMatrix);
+                baseExtensions[key] = room.getPositionForBuild(3, [new RoomPosition(startPosition.x, startPosition.y, room.name)], false, buildingMatrix);
                 position = baseExtensions[key];
                 offset = -1;
                 break;
             }
 			case 'tower': {
-				baseExtensions[key] = room.getPositionForBuild(3, [new RoomPosition(startPosition.x, startPosition.y, room.name)], true, buildingMatrix);
+				baseExtensions[key] = room.getPositionForBuild(3, [new RoomPosition(startPosition.x, startPosition.y, room.name)], false, buildingMatrix);
 				position = baseExtensions[key];
 				offset = -1;
 				break;
@@ -72,7 +72,7 @@ export function setupBuildings(room: Room) {
 			for (x = 0; x < blueprints[key][y].length; x++) {
 				if (blueprints[key][y][x]) {
                     const structureType = blueprints[key][y][x]?.type;
-                    if (structureType === undefined || structureType === null) {
+                    if (!structureType) {
                         console.log("structureType undefined at: " + x + " " + y + " with key " + key);
                         continue;
                     }

@@ -18,7 +18,7 @@
 export const powerBunkerMatrix: (undefined | bluePrintMatrixElement)[][] = [
     [undefined,							undefined,								{ rcl: 3, type: STRUCTURE_ROAD},		undefined,								undefined,],
     [undefined,							{ rcl: 3, type: STRUCTURE_ROAD},		{ rcl: 5, type: STRUCTURE_TERMINAL},	{ rcl: 3, type: STRUCTURE_ROAD},		undefined,],
-    [{ rcl: 3, type: STRUCTURE_ROAD},	{ rcl: 6, type: STRUCTURE_FACTORY},	{ rcl: 4, type: STRUCTURE_LINK},    	{ rcl: 7, type: STRUCTURE_OBSERVER},	{ rcl: 3, type: STRUCTURE_ROAD},],
+    [{ rcl: 3, type: STRUCTURE_ROAD},	{ rcl: 6, type: STRUCTURE_FACTORY},	    { rcl: 4, type: STRUCTURE_LINK},    	{ rcl: 7, type: STRUCTURE_OBSERVER},	{ rcl: 3, type: STRUCTURE_ROAD},],
     [undefined,							{ rcl: 3, type: STRUCTURE_ROAD},		{ rcl: 7, type: STRUCTURE_NUKER},   	{ rcl: 3, type: STRUCTURE_ROAD},		undefined,],
     [undefined,							undefined,								{ rcl: 3, type: STRUCTURE_ROAD},		undefined,								undefined,],
 ]

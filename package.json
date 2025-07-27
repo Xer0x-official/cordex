@@ -56,6 +56,7 @@
     },
     "dependencies": {
         "@types/screeps": "^3.3.7",
+        "pure-uuid": "^1.8.1",
         "source-map": "^0.7.3",
         "tsc": "^2.0.4"
     },

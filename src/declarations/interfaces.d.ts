@@ -1,4 +1,3 @@
-
 interface IDroppedResourceMemory {
 	[name: string]: any;
 	energy: {[name: Id<Resource>]: {pos: RoomPosition, transporterCount: number}},
@@ -205,9 +204,11 @@ interface CreepMemory {
 	[name: string]: any;
 	job: string,
 	working: boolean,
-	target: Id<Source> | Id<Mineral> | Id<AnyStructure> | Id<AnyCreep> | Id<ConstructionSite>  | null,
 	task: string,
 	origin: string,
+    amountAssigned: number,
+    transportTask?: TransportTask,
+	target?: Id<Source> | Id<Mineral> | Id<AnyStructure> | Id<AnyCreep> | Id<ConstructionSite> | null,
 	energyTarget?: Id<StructureWithStorage> | Id<Resource> | null;
 }
 
@@ -287,4 +288,21 @@ interface Spawn {
 interface RoomVisual {
     structure: (x: number, y: number, type: string, opts={}) => RoomVisual;
     // connectRoads: (opacity: number, color: ColorConstant) => RoomVisual | null;
+}
+
+// Beschreibung einer Transportanfrage
+interface TransportRequest {
+    id: string;
+    originId: Id<StructureWithStorage> | Id<Resource>;    // Objekt, von dem Energie geholt wird
+    possibleDestinations: Id<Structure | AnyCreep>[]; // potenzielle Abnehmer
+    amount: number;                           // benötigte Menge
+    priority: number;
+}
+
+// Daten, die einem Transporter zugewiesen werden
+interface TransportTask {
+    requestId: string;
+    originId: Id<StructureWithStorage> | Id<Resource>;
+    targetId: Id<Source> | Id<Mineral<MineralConstant>> | Id<AnyStructure> | Id<AnyCreep> | Id<ConstructionSite<BuildableStructureConstant>>;
+    amount: number;
 }

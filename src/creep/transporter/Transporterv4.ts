@@ -1,5 +1,7 @@
 import { TransportManager } from "logistics/TransportManager";
 
+
+
 enum State {
 	Start,
 	HasTarget,
@@ -29,6 +31,7 @@ export class Transporter implements ICreepClass {
 	execute: Execute;
 	doesTargetNeedEnergyAttempts: number;
 	stateGraph: string[];
+    task: TransportTask | null = null;
 
 	constructor(creep: Creep, memory: CreepMemory) {
 		this.creep = creep;
@@ -36,6 +39,7 @@ export class Transporter implements ICreepClass {
 		this.name = this.creep.name;
 		this.state = State.Start;
 		this.stateGraph = [this.name];
+        this.task = TransportManager.getTaskForCreep(this.creep);
 
 		this._run();
 		// console.log(this.stateGraph);
@@ -59,21 +63,86 @@ export class Transporter implements ICreepClass {
 
 	runAutomat() {
 		switch (this.state) {
-			case State.Start: {
-				this.state = State.HasEnergy;
-				this.stateGraph.push('Start');
-				break;
-			}
-            // case State.Start: {
-            //     const task = TransportManager.getTaskForCreep(this.creep);
-            //     if (task) {
-            //         this.memory.energyTarget = task.originId;
-            //         this.memory.target = task.targetId;
-            //         this.memory.amountAssigned = task.amount;
-            //     }
-            //     this.state = State.HasEnergy;
-            //     break;
-			// }
+            case State.Start: {
+                if (!this.task) {
+                    // keine Aufgabe – nichts zu tun
+                    this.state = State.End;
+                    break;
+                }
+                // Setze Energie‑ und Ziel‑ID aus der Aufgabe
+                this.memory.energyTarget = this.task.originId;
+                this.memory.target = this.task.targetId;
+                // merke dir, wie viel Energie du holen sollst
+                this.memory.amountAssigned = this.task.amount;
+                this.memory.working = false;
+                this.state = State.HasEnergy;
+                break;
+            }
+
+            case State.HasEnergy: {
+                // Prüfe, ob genügend Energie für diese Aufgabe vorhanden ist
+
+                const target = Game.getObjectById(this.memory.target!);
+                if (!target) {
+                    // Ziel existiert nicht mehr, Aufgabe aufgeben
+                    this.clearTask();
+                    this.state = State.End;
+                    break;
+                }
+
+                let neededEnergy = -1;
+                if ('store' in target) neededEnergy = target.store.getFreeCapacity(RESOURCE_ENERGY);
+
+                let creepCapacity = this.creep.store.getUsedCapacity();
+
+                const enough = (neededEnergy > 0 && creepCapacity >= neededEnergy) ||
+                    (creepCapacity >= this.memory.amountAssigned) ||
+                    this.creep.store.getFreeCapacity(RESOURCE_ENERGY) == 0;
+
+                if (enough) {
+                    this.state = State.IsTargetNear;
+                } else {
+                    this.state = State.FindEnergySource; // Energie holen
+                }
+                break;
+            }
+
+            // In IsTargetNear:
+            case State.IsTargetNear: {
+                const target = Game.getObjectById(this.memory.target!);
+                if (!target) {
+                    // Ziel existiert nicht mehr, Aufgabe aufgeben
+                    this.clearTask();
+                    this.state = State.End;
+                    break;
+                }
+                if (this.creep.pos.getRangeTo(target.pos) <= 1) {
+                    this.execute = Execute.Transfer;
+                } else {
+                    this.execute = Execute.MoveTarget;
+                }
+                this.state = State.Execute;
+                break;
+            }
+
+            // In FindEnergySource:
+            case State.FindEnergySource: {
+                // Hol die zugewiesene Energiequelle
+                const source = Game.getObjectById(this.memory.energyTarget!);
+                if (!source) {
+                    this.clearTask();
+                    this.state = State.End;
+                    break;
+                }
+
+                if (this.creep.pos.getRangeTo(source.pos) <= 1) {
+                    this.execute = Execute.Pickup;
+                } else {
+                    this.execute = Execute.MoveSource;
+                }
+                this.state = State.Execute;
+                break;
+            }
 
 			case State.HasTarget: {
 				if (this.memory.target && this.memory.target !== null) {
@@ -111,31 +180,6 @@ export class Transporter implements ICreepClass {
 				break;
 			}
 
-			case State.HasEnergy: {
-				if (this.hatGenugEnergie()) {
-					this.state = State.HasTarget;
-					this.stateGraph.push('HasTarget');
-				} else {
-					this.state = State.FindEnergySource;
-					this.stateGraph.push('FindEnergySource');
-				}
-
-				break;
-			}
-
-			case State.IsTargetNear: {
-				if (this.creep.pos.getRangeTo(this.target.pos) <= 1) {
-					this.execute = Execute.Transfer;
-					this.state = State.Execute;
-					this.stateGraph.push('Transfer');
-					break;
-				}
-
-				this.state = State.DoesTargetNeedEnergy;
-				this.stateGraph.push('DoesTargetNeedEnergy');
-				break;
-			}
-
 			case State.DoesTargetNeedEnergy: {
 				if (this.target) {
 					this.execute = Execute.MoveTarget;
@@ -159,26 +203,9 @@ export class Transporter implements ICreepClass {
 				break;
 			}
 
-			case State.FindEnergySource: {
-				for (let i = 0; i < 3; i++) {
-					if (this.creep.getResourceTarget() && this.creep.memory.energyTarget) {
-						this.state = State.IsSourceNear;
-						this.stateGraph.push('IsSourceNear');
-						break;
-					}
-				}
-
-				if (this.state !== State.IsSourceNear) {
-					this.memory.energyTarget = null;
-					this.state = State.End;
-					this.stateGraph.push('FindEnergySource/End');
-				}
-				break;
-			}
-
 			case State.IsSourceNear: {
-				if (this.creep.memory.energyTarget) {
-					const energyTarget = Game.getObjectById(this.creep.memory.energyTarget);
+				if (this.memory.energyTarget) {
+					const energyTarget = Game.getObjectById(this.memory.energyTarget);
 
 					if (energyTarget && this.creep.pos.getRangeTo(energyTarget.pos) <= 1) {
 						this.execute = Execute.Pickup;
@@ -309,48 +336,37 @@ export class Transporter implements ICreepClass {
 
 	executeActions() {
 		switch (this.execute) {
-			case Execute.Pickup: {
-				if (this.creep.memory.energyTarget) {
-					let energyTarget = Game.getObjectById(this.creep.memory.energyTarget);
-					if (energyTarget === null) {
-						break;
-					}
+            case Execute.Pickup: {
+                const source: any = Game.getObjectById(this.memory.energyTarget!);
+                if (source) {
+                    const amount = Math.min(this.memory.amountAssigned!, this.creep.store.getFreeCapacity());
+                    if (source instanceof Resource) {
+                        this.creep.pickup(source);
+                    } else {
+                        this.creep.withdraw(source, RESOURCE_ENERGY, amount);
+                    }
+                } else {
+                    this.clearTask();
+                }
+                break;
+            }
 
-					let err = 0;
-					if (energyTarget instanceof Resource) {
-						err = this.creep.pickup(energyTarget);
-					} else {
-						let targetCapacity = energyTarget.store.getUsedCapacity();
-						if (targetCapacity !== null) {
-							err = this.creep.withdraw(energyTarget, RESOURCE_ENERGY, Math.min(this.creep.store.getFreeCapacity(), targetCapacity));
-						}
-					}
-
-					if (err === ERR_NOT_ENOUGH_RESOURCES || err === ERR_INVALID_TARGET) {
-						this.memory.energyTarget = null;
-					}
-				}
-				break;
-			}
-
-			case Execute.Transfer: {
-				if (this.memory.target) {
-					let transferTarget = Game.getObjectById(this.memory.target) as StructureWithStorage;
-					if (!transferTarget || !transferTarget.store) {
-						this.stateGraph.push('cansel Transfer')
-						break;
-					}
-
-					const transferTargetFreeCapacity = transferTarget.store.getFreeCapacity();
-					let err = this.creep.transfer(transferTarget, RESOURCE_ENERGY, Math.min(this.creep.store.getUsedCapacity(), (transferTargetFreeCapacity === null ? 0 : transferTargetFreeCapacity)))
-
-					this.memory.target = null;
-					this.stateGraph.push(`made Transfer with err:${err}`);
-					break;
-				}
-				this.stateGraph.push('done nothing');
-				break;
-			}
+            case Execute.Transfer: {
+                const target: any = Game.getObjectById(this.memory.target!);
+                if (target && 'store' in target) {
+                    const amount = Math.min(this.memory.amountAssigned!, target.store.getFreeCapacity(RESOURCE_ENERGY), this.creep.store.getUsedCapacity());
+                    let transfer = this.creep.transfer(target, RESOURCE_ENERGY, amount);
+                    if (transfer == ERR_FULL) {
+                        this.clearTask();
+                    } else {
+                        this.memory.amountAssigned! -= amount;
+                    }
+                }
+                if (this.memory.amountAssigned! <= 0 || !target || target.store.getFreeCapacity(RESOURCE_ENERGY) == 0) {
+                    this.clearTask(); // Aufgabe erledigt oder Ziel tot
+                }
+                break;
+            }
 
 			case Execute.MoveTarget: {
 				if (this.memory.target) {
@@ -364,8 +380,8 @@ export class Transporter implements ICreepClass {
 			}
 
 			case Execute.MoveSource: {
-				if (this.creep.memory.energyTarget) {
-					let energyTarget = Game.getObjectById(this.creep.memory.energyTarget);
+				if (this.memory.energyTarget) {
+					let energyTarget = Game.getObjectById(this.memory.energyTarget);
 
 					if (energyTarget !== null) {
 						this.creep.travelTo(energyTarget, { ignoreCreeps: false, preferHighway: true, range: 1 });
@@ -375,4 +391,13 @@ export class Transporter implements ICreepClass {
 			}
 		}
 	}
+
+    private clearTask() {
+        delete this.creep.memory.transportTask;
+        delete this.memory.target;
+        this.memory.energyTarget = null;
+        this.memory.amountAssigned = 0;
+        this.task = null;
+        this.memory.working = false;
+    }
 }
