@@ -1,13 +1,14 @@
 import { log } from "utilities/Logger";
 import * as utils from "../utilities";
 import { RoomLogic } from "./RoomLogic";
+import { maxWorkersForTarget, workersNeededForProject, getBuilderBody } from '../utilities/ManagementPlan';
 
 export class HandleSpawn {
 	room: Room;
 	name: string;
 	spawn: StructureSpawn;
-	spawnQueue: colonieQueueElement[];
-	buildQueue: colonieQueueElement[];
+	spawnQueue: spawnQueueElement[];
+	buildQueue: buildQueueElement[];
 	stats: IColonieStats;
 	memory: RoomMemory;
 	ticks: number;
@@ -50,7 +51,9 @@ export class HandleSpawn {
 			// console.log(this.memory.scouted, this.room.memory.scouted);
 
 			this.spawnQueue.push({
-				bodyParts: [MOVE, MOVE, MOVE], name: `scout_W5N8_${Game.time}`, memory: {
+				bodyParts: [MOVE, MOVE, MOVE],
+                name: `scout_W5N8_${Game.time}`,
+                memory: {
 					job: "scout",
 					working: false,
 					cost: 150,
@@ -68,12 +71,14 @@ export class HandleSpawn {
 			const initMinerName = `init_miner_${this.room.name}_${this.ticks - 1}`;
 			const initTransporterName = `init_transporter_${this.room.name}_${this.ticks - 1}`;
 
-			const hasInitMiner = this.spawnQueue.some((entry: colonieQueueElement) => entry.name.includes('init'));
+			const hasInitMiner = this.spawnQueue.some((entry: spawnQueueElement) => entry.name.includes('init'));
 			const hasInitTransporter = this.spawnQueue.some(entry => entry.name.includes('init'));
 
 			if (!hasInitMiner)
 				this.spawnQueue.push({
-					bodyParts: [WORK, MOVE], name: initMinerName, memory: {
+					bodyParts: [WORK, MOVE],
+                    name: initMinerName,
+                    memory: {
 						job: "miner",
 						working: false,
 						cost: 150,
@@ -88,7 +93,9 @@ export class HandleSpawn {
 
 			if (!hasInitTransporter)
 				this.spawnQueue.push({
-					bodyParts: [CARRY, CARRY, MOVE], name: initTransporterName, memory: {
+					bodyParts: [CARRY, CARRY, MOVE],
+                    name: initTransporterName,
+                    memory: {
 						job: "transporter",
 						working: false,
 						cost: 150,
@@ -201,6 +208,8 @@ export class HandleSpawn {
 					break;
 
 				case "worker": {
+
+
 					for (let i = 0; i < this.buildQueue.length; i++) {
 						if ((this.buildQueue[i].cost as number) > 0) {
 							neededCreeps = this.getWorkerForTask(this.buildQueue[i].name);
@@ -276,6 +285,7 @@ export class HandleSpawn {
 				this.addPart(body, available, firstPartCount.WORK, WORK);
 				this.addPart(body, available, firstPartCount.CARRY, CARRY);
 				this.addPart(body, available, firstPartCount.MOVE, MOVE);
+
 				break;
 		}
 
@@ -284,25 +294,42 @@ export class HandleSpawn {
 
 	calculateBodyParts(energy: number) {
 
-		const energyAvailable = Math.floor(energy / 50);
-		const isOdd = energyAvailable % 2 !== 0;
-		/* const energyHalf = Math.floor(energyAvailable / 2);
-		const energyFourth = Math.floor(energyHalf / 2); */
+		// const energyAvailable = Math.floor(energy / 50);
+		// const isOdd = energyAvailable % 2 !== 0;
+		// /* const energyHalf = Math.floor(energyAvailable / 2);
+		// const energyFourth = Math.floor(energyHalf / 2); */
+
+		const energyCap = this.room.energyCapacityAvailable;
+		const body = getBuilderBody(energyCap);
 
 		const partCount = {
 			WORK: 0,
-			CARRY: (energyAvailable < 6 ? 1 : 2),
-			MOVE: (energyAvailable < 6 ? 1 : 2),
+			CARRY: 0,
+			MOVE: 0,
 		};
 
-		const leftEnergy = energyAvailable - (partCount.CARRY + partCount.MOVE);
+		body.forEach(part => {
+			switch (part) {
+                case "carry":
+					partCount.CARRY = partCount.CARRY +1;
+                    break;
+                case "move":
+					partCount.MOVE = partCount.MOVE +1;
+                    break;
+                case "work":
+					partCount.WORK = partCount.WORK +1;
+					break;
+            }
+		})
 
-		if (leftEnergy % 2 === 0) {
-			partCount.WORK = Math.floor(leftEnergy / 2);
-		} else {
-			partCount.WORK = Math.floor(leftEnergy / 2);
-			partCount.MOVE += 1;
-		}
+		// const leftEnergy = energyAvailable - (partCount.CARRY + partCount.MOVE);
+		//
+		// if (leftEnergy % 2 === 0) {
+		// 	partCount.WORK = Math.floor(leftEnergy / 2);
+		// } else {
+		// 	partCount.WORK = Math.floor(leftEnergy / 2);
+		// 	partCount.MOVE += 1;
+		// }
 
 		/*
 		const energyHalf = Math.floor(energyAvailable / 2);
@@ -319,9 +346,9 @@ export class HandleSpawn {
 			partCount.MOVE += remainingEnergy - partCount.CARRY;
 		} */
 
-		const totalCost = Object.keys(partCount).reduce((sum, part) => {
-			return sum + BODYPART_COST[part as BodyPartConstant] * BODYPART_COST[part as BodyPartConstant];
-		}, 0);
+		// const totalCost = Object.keys(partCount).reduce((sum, part) => {
+		// 	return sum + BODYPART_COST[part as BodyPartConstant] * BODYPART_COST[part as BodyPartConstant];
+		// }, 0);
 
 		return partCount;
 	}
@@ -336,20 +363,27 @@ export class HandleSpawn {
 			return 0;
 		}
 
-		const taskCost: number = taskData.cost as number;
-		const workBodyPartCount = this.calculateBodyParts(this.room.energyCapacityAvailable || this.room.energyAvailable).WORK;
-		const workloadPerThousandTicks = workBodyPartCount * (task.includes('controller') ? 1000 : 5000);
-		let creepSpawnCount = Math.ceil(taskCost / workloadPerThousandTicks);
+        // Beispiel beim Berechnen der Worker-Anzahl
+        const positionsAvailable = maxWorkersForTarget(taskData.pos, task.includes('controller'));
+        // durchschnittliche WORK-Teile pro Creep aus deinem Body‑Design
+        const averageWorkParts = 5;
+        const workersNeeded = workersNeededForProject(taskData, this.room);
+		return positionsAvailable - workersNeeded;
 
-		if (taskData.neededCreeps && taskData.neededCreeps <= -1) {
-			taskData.neededCreeps = Math.min(creepSpawnCount, 20);
-		} else {
-			const creepCount = _.filter(Game.creeps, (creep) => creep.memory.job == 'worker' && creep.getTask() === task).length;
-			creepSpawnCount = Math.max(0, (taskData.neededCreeps as number) - creepCount);
-		}
-
-		creepSpawnCount = Math.min(creepSpawnCount, 20);
-		return creepSpawnCount;
+		// const taskCost: number = taskData.cost as number;
+		// const workBodyPartCount = this.calculateBodyParts(this.room.energyCapacityAvailable || this.room.energyAvailable).WORK;
+		// const workloadPerThousandTicks = workBodyPartCount * (task.includes('controller') ? 1000 : 5000);
+		// let creepSpawnCount = Math.ceil(taskCost / workloadPerThousandTicks);
+		//
+		// if (taskData.neededCreeps && taskData.neededCreeps <= -1) {
+		// 	taskData.neededCreeps = Math.min(creepSpawnCount, 20);
+		// } else {
+		// 	const creepCount = _.filter(Game.creeps, (creep) => creep.memory.job == 'worker' && creep.getTask() === task).length;
+		// 	creepSpawnCount = Math.max(0, (taskData.neededCreeps as number) - creepCount);
+		// }
+		//
+		// creepSpawnCount = Math.min(creepSpawnCount, 20);
+		// return creepSpawnCount;
 	}
 
 }

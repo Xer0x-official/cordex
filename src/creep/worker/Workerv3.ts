@@ -1,3 +1,5 @@
+import { findEnergyTarget } from '../../utilities/ManagementPlan';
+
 enum State {
     Start,
     HasTarget,
@@ -136,10 +138,12 @@ export class Worker implements ICreepClass{
 
             case State.FindEnergySource: {
 				for (let i = 0; i < 3; i++) {
-					if (this.creep.getResourceTarget(RESOURCE_ENERGY, false)) {
-						this.state = State.IsSourceNear;
-						break;
-					}
+                    const target = findEnergyTarget(this.creep);
+                    if (target) {
+                        this.creep.memory.target = target;
+                        this.state = State.IsSourceNear;
+                        break;
+                    }
 				}
 
 				if (this.state !== State.IsSourceNear) {

@@ -1,5 +1,6 @@
 import { Console } from "console";
 import * as utils from "../utilities";
+import { canScheduleNewProject, BUILD_ENERGY_THRESHOLD } from '../utilities/ManagementPlan';
 
 export class RoomBuilder implements IBaseRoomClass {
 
@@ -58,6 +59,11 @@ export class RoomBuilder implements IBaseRoomClass {
 	buildStructure(name: string, positionInit: RoomPosition | undefined = undefined): void {
 		let pack = 0;
 
+		// Beispiel innerhalb von buildStructure() oder buildController():
+		if (!canScheduleNewProject(this.room)) {
+			return; // Abbruch – keine neuen Projekte starten
+		}
+
 		if (name.includes('extensionPack')) {
 			pack = parseInt(name.slice(-1), 10);
 			name = 'extensionPack';
@@ -75,7 +81,15 @@ export class RoomBuilder implements IBaseRoomClass {
 			}
 
 			const position = positionInit || new RoomPosition(extension.x -1, extension.y -1, this.name);
-			const project = this.room.buildBlueprint(position, name);
+			const blueprintData = this.room.buildBlueprint(position, name);
+			const project: buildQueueElement = {
+                name: blueprintData.name,
+                cost: blueprintData.cost,
+                pos: new RoomPosition(0, 0, this.room.name),
+                id: "",
+                structures: blueprintData.structures,
+                neededCreeps: blueprintData.neededCreeps,
+            };
 
 			if (project.structures.length > 0 && project.cost > 0) {
 				console.log(`ROOM: Tried to add buildingProject ${project.name} with ${project.cost} costs`);
@@ -116,6 +130,10 @@ export class RoomBuilder implements IBaseRoomClass {
 	}
 
 	buildController() {
+		if (!canScheduleNewProject(this.room)) {
+			return; // Abbruch – keine neuen Projekte starten
+		}
+
 		if (!this.isBuildAlreadyInQueue('controller') && (this.room.controller && this.room.controller.ticksToDowngrade < 500 || this.room.stats.totalAvailableEnergy > this.controllerUpgradeThreshhold)) {
 			let controllerUpgradeCost = (Math.floor(this.room.stats.totalAvailableEnergy / this.controllerUpgradeThreshhold) * this.controllerUpgradeThreshhold) * 0.75;
 			controllerUpgradeCost = controllerUpgradeCost > (CONTROLLER_LEVELS[this.rcl] * 0.25) ? (CONTROLLER_LEVELS[this.rcl] * 0.25) : controllerUpgradeCost;
@@ -127,12 +145,14 @@ export class RoomBuilder implements IBaseRoomClass {
 				.filter(structure => structure && structure.structure.structureType === STRUCTURE_CONTAINER).length;
 			}
 
-			const buildData = {
-				name: `controller_${Game.time}`,
-				cost: controllerUpgradeCost,
-				structures: [{ pos: this.room.controller?.pos, type: undefined } as buildBlueprintBuildElement],
-				neededCreeps: -1
-			};
+			const buildData: buildQueueElement = {
+                name: `controller_${Game.time}`,
+                cost: controllerUpgradeCost,
+                structures: [{ pos: this.room.controller?.pos, type: undefined } as buildBlueprintBuildElement],
+                neededCreeps: -1,
+                pos: new RoomPosition(0, 0, this.room.name),
+                id: ""
+            };
 
 			if (roomController && containerAroundController <= 0 && this.rcl >= 2) {
 				const spawn = Game.getObjectById(this.room.colonieMemory.spawns[0]);
@@ -194,7 +214,14 @@ export class RoomBuilder implements IBaseRoomClass {
 		if (this.isBuildAlreadyInQueue('paths')) { return }
 
 		// return { name: `${name}_${Game.time}`, cost: costs.cost, structures: structureList, neededCreeps: neededCreeps };
-		const buildData: colonieQueueElement = { name: `paths_${Game.time}`, cost: 0, structures: [], neededCreeps: -1 };
+		const buildData: buildQueueElement = {
+            name: `paths_${Game.time}`,
+            cost: 0,
+            structures: [],
+            neededCreeps: -1,
+            pos: new RoomPosition(0, 0, this.room.name),
+            id: ""
+        };
 		const energy = this.room.stats.totalAvailableEnergy;
 		let roomPaths;
 		let i = 0, j = 0;

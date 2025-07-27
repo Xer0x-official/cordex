@@ -1,7 +1,7 @@
 export class DefenseCreepController {
 	maxCreeps = 20;
 	maxInvaderDefenders = 8;
-	spawnQueue: colonieQueueElement[] = []; // TODO: Dies sollte auf Ihre aktuelle SpawnQueue verweisen
+	spawnQueue: spawnQueueElement[] = []; // TODO: Dies sollte auf Ihre aktuelle SpawnQueue verweisen
 	invaderCoreDestroyTime = 500; // Ticks
 	enegyAvailable: number;
 	room: Room;
@@ -55,6 +55,7 @@ export class DefenseCreepController {
 				target: targetId,
 				task: '',
 				origin: roomName,
+                amountAssigned: 0
 			}
 		});
 	}

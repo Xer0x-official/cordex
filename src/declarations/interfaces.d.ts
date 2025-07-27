@@ -114,10 +114,28 @@ interface TravelState {
 	cpu: number;
 }
 
+interface spawnQueueElement extends colonieQueueElement {
+    name: string;
+    bodyParts: BodyPartConstant[],
+    memory: CreepMemory;
+    cost?: number;
+    pos?: RoomPosition;
+    id?: string;
+}
+
+interface buildQueueElement extends colonieQueueElement {
+    name: string;
+    cost: number;
+    pos: RoomPosition;
+    id: string;
+    structures: buildBlueprintBuildElement[];
+    neededCreeps: number;
+}
+
 interface Room {
 	repairQueue: colonieQueueElement[];
-	spawnQueue: colonieQueueElement[];
-	buildQueue: colonieQueueElement[];
+	spawnQueue: spawnQueueElement[];
+	buildQueue: buildQueueElement[];
 	stats: IColonieStats;
 	spawns: Id<StructureSpawn>[];
 	colonieMemory: IColonieMemory;
@@ -208,7 +226,7 @@ interface CreepMemory {
 	origin: string,
     amountAssigned: number,
     transportTask?: TransportTask,
-	target?: Id<Source> | Id<Mineral> | Id<AnyStructure> | Id<AnyCreep> | Id<ConstructionSite> | null,
+	target?: Id<Resource> | Id<Source> | Id<Mineral> | Id<AnyStructure> | Id<AnyCreep> | Id<ConstructionSite> | null,
 	energyTarget?: Id<StructureWithStorage> | Id<Resource> | null;
 }
 
