@@ -1,7 +1,5 @@
 import { TransportManager } from "logistics/TransportManager";
 
-
-
 enum State {
 	Start,
 	HasTarget,
@@ -355,6 +353,13 @@ export class Transporter implements ICreepClass {
             }
 
             case Execute.Transfer: {
+                // Neu: Versuche zunächst, Energie an anderen Transporter zu übergeben
+                if (this.attemptTransferToTransporter()) {
+                    // wir haben die Energie übergeben; Aufgabe beendet, daher break
+                    console.log("transfer transfer");
+                    break;
+                }
+
                 const target: any = Game.getObjectById(this.memory.target!);
                 if (target && 'store' in target) {
                     const amount = Math.min(this.memory.amountAssigned!, target.store.getFreeCapacity(RESOURCE_ENERGY), this.creep.store.getUsedCapacity());
@@ -369,6 +374,13 @@ export class Transporter implements ICreepClass {
             }
 
 			case Execute.MoveTarget: {
+                // Neu: Wenn wir noch nicht beim Ziel sind, prüfen, ob ein anderer Transporter vor uns steht
+                if (this.attemptTransferToTransporter()) {
+                    console.log("move transfer");
+                    // Übergabe hat stattgefunden; wir müssen nicht mehr zum Ziel laufen
+                    break;
+                }
+
 				if (this.memory.target) {
 					let transferTarget = Game.getObjectById(this.memory.target);
 
@@ -400,4 +412,51 @@ export class Transporter implements ICreepClass {
         this.task = null;
         this.memory.working = false;
     }
+
+    private attemptTransferToTransporter(): boolean {
+        // Kein Ziel hinterlegt? Dann können wir nichts übergeben.
+        const myTargetId = this.memory.target;
+        if (!myTargetId) return false;
+
+        const transferTarget = Game.getObjectById(myTargetId);
+        if (!transferTarget) return false;
+
+        // Finde andere Transporter in Reichweite 1
+        const others: Creep[] = this.creep.pos.findInRange(FIND_MY_CREEPS, 1).filter(c =>
+            c.id !== this.creep.id &&
+            c.memory.job === 'transporter' &&
+            c.memory.target === myTargetId
+        );
+        // Suche den, der näher am Ziel steht
+        let recipient: Creep | null = null;
+        for (const other of others) {
+            if (other.pos.getRangeTo(transferTarget.pos) < this.creep.pos.getRangeTo(transferTarget.pos)) {
+                if (other.store.getFreeCapacity() > 0) {
+                    recipient = other;
+                    break;
+                }
+            }
+        }
+        if (!recipient) return false;
+
+        const amount = Math.min(this.creep.store.getUsedCapacity(), recipient.store.getFreeCapacity());
+        if (amount <= 0) return false;
+
+        const result = this.creep.transfer(recipient, RESOURCE_ENERGY, amount);
+        if (result === OK) {
+            // Aufgabe bei uns als erledigt markieren
+            if (this.memory.amountAssigned !== undefined) {
+                this.memory.amountAssigned -= amount;
+            }
+            // optional: dem Empfänger mitteilen, dass er mehr liefern soll
+            if (recipient.memory.amountAssigned !== undefined) {
+                recipient.memory.amountAssigned += amount;
+            }
+            // Aufgabe löschen
+            this.clearTask();
+            return true;
+        }
+        return false;
+    }
+
 }

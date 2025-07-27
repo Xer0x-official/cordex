@@ -301,9 +301,9 @@ export class TransportManager {
                 [STRUCTURE_SPAWN]: 0,
                 [STRUCTURE_EXTENSION]: 1,
                 [STRUCTURE_TOWER]: 2,
-                [STRUCTURE_CONTAINER]: 3,
-                [STRUCTURE_LINK]: 3,      // optional wie Container behandeln
-                creep: 4,                 // Worker creeps
+                creep: 3,                 // Worker creeps
+                [STRUCTURE_CONTAINER]: 4,
+                [STRUCTURE_LINK]: 4,      // optional wie Container behandeln
                 [STRUCTURE_STORAGE]: 5,
                 [STRUCTURE_TERMINAL]: 6,
             };
