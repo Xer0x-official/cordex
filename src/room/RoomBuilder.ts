@@ -170,10 +170,11 @@ export class RoomBuilder implements IBaseRoomClass {
 	// }
 
     containerNearController(): boolean {
+        const containerRange = 3;
         let containerAroundController: number = 0;
         let roomController = this.room.controller;
         if (roomController) {
-            containerAroundController = this.room.lookForAtArea(LOOK_STRUCTURES, roomController.pos.x -2, roomController.pos.y -2, roomController.pos.x +2, roomController.pos.y +2, true)
+            containerAroundController = this.room.lookForAtArea(LOOK_STRUCTURES, roomController.pos.x -containerRange, roomController.pos.y -containerRange, roomController.pos.x +containerRange, roomController.pos.y +containerRange, true)
             .filter(structure => structure && structure.structure.structureType === STRUCTURE_CONTAINER).length;
         }
 
@@ -186,7 +187,7 @@ export class RoomBuilder implements IBaseRoomClass {
         if (!canScheduleNewProject(this.room)) return;
 
         // 1. Containerbau forcieren, falls Level ≥ 2 und keiner vorhanden
-        if (this.rcl >= 2 && !this.containerNearController()) {
+        if (this.rcl > 0 && !this.containerNearController()) {
             const containerPos = this.findOptimalContainerPosition(this.spawn, controller);
             if (containerPos) {
                 const containerProject: buildQueueElement = {

@@ -135,55 +135,126 @@ export class HandleSpawn {
 		return spawnPriorityList;
 	}
 
-	spawnCreepFromQueue() {
-		let spawnDetails: colonieQueueElement = { name: '' };
-		let spawnDetailIndex: number = -1;
-		let generatedBodyParts: BodyPartConstant[] = [];
-		let spawnBodyParts: BodyPartConstant[] = [];
-		const spawnPriorityList: string[][] = this.getSpawnPriorityList();
-		const energyCapacity = this.room.getEnergyCapacity();
-		let err = 0;
+	// spawnCreepFromQueue() {
+	// 	let spawnDetails: colonieQueueElement = { name: '' };
+	// 	let spawnDetailIndex: number = -1;
+	// 	let generatedBodyParts: BodyPartConstant[] = [];
+	// 	let spawnBodyParts: BodyPartConstant[] = [];
+	// 	const spawnPriorityList: string[][] = this.getSpawnPriorityList();
+	// 	const energyCapacity = this.room.getEnergyCapacity();
+	// 	let err = 0;
+    //
+	// 	if (this.room.energyAvailable < 300 || !this.spawn) {
+	// 		return;
+	// 	}
+    //
+	// 	for (let i = 0; i < spawnPriorityList.length; i++) {
+	// 		spawnDetailIndex = this.checkSpawnQueueForJob(spawnPriorityList[i][0], spawnPriorityList[i][1]);
+    //
+	// 		if (spawnDetailIndex >= 0) {
+	// 			break;
+	// 		}
+	// 	}
+    //
+	// 	if (this.room.stats.roles.transporter > 0 && this.room.energyAvailable < energyCapacity && this.room.stats.totalAvailableEnergy >= energyCapacity) {
+	// 		return;
+	// 	}
+    //
+	// 	spawnDetails = this.spawnQueue[spawnDetailIndex];
+	// 	generatedBodyParts = this.getBodyParts(this.room.energyAvailable, spawnDetails.memory?.job);
+    //
+	// 	if (spawnDetails.bodyParts && spawnDetails.bodyParts.length > 0) {
+	// 		//this.spawnQueue.splice(spawnDetailIndex, 1);
+	// 		spawnBodyParts = spawnDetails.bodyParts;
+	// 	} else {
+	// 		spawnBodyParts = generatedBodyParts;
+	// 	}
+    //
+	// 	err = this.spawn.spawnCreep(spawnBodyParts, spawnDetails.name, { memory: spawnDetails.memory as CreepMemory });
+    //
+	// 	if (err === ERR_NOT_ENOUGH_ENERGY) {
+	// 		err = this.spawn.spawnCreep(generatedBodyParts, spawnDetails.name, { memory: spawnDetails.memory as CreepMemory });
+	// 	}
+    //
+	// 	if (err == OK) {
+	// 		this.spawnQueue.splice(spawnDetailIndex, 1);
+	// 	} else if (err == ERR_BUSY) {
+	// 		this.spawn.pos.pushCreepsAway();
+	// 	} else if (utils.DEBUG) {
+	// 		log.error(err.toString());
+	// 	}
+	// }
 
-		if (this.room.energyAvailable < 300 || !this.spawn) {
-			return;
-		}
+    public spawnCreepFromQueue(): void {
+        if (!this.spawn || this.room.energyAvailable < 150 || this.spawn.spawning) return;
 
-		for (let i = 0; i < spawnPriorityList.length; i++) {
-			spawnDetailIndex = this.checkSpawnQueueForJob(spawnPriorityList[i][0], spawnPriorityList[i][1]);
+        // Spawn-Plattform frei räumen
+        let freePositionAroundSpawn = this.spawn.pos.getFreePositions(1, false).length;
+        if (freePositionAroundSpawn < 1) {
+            console.log("pushing Creeps!");
+            this.spawn.pos.pushCreepsAway();
+        }
 
-			if (spawnDetailIndex >= 0) {
-				break;
-			}
-		}
+        const entry = this.spawnQueue[0];
+        const body = entry.bodyParts && entry.bodyParts.length > 0
+            ? entry.bodyParts
+            : this.getBodyParts(this.room.energyAvailable, entry.memory?.job);
 
-		if (this.room.stats.roles.transporter > 0 && this.room.energyAvailable < energyCapacity && this.room.stats.totalAvailableEnergy >= energyCapacity) {
-			return;
-		}
+        const err = this.spawn.spawnCreep(body, entry.name, { memory: entry.memory as CreepMemory });
 
-		spawnDetails = this.spawnQueue[spawnDetailIndex];
-		generatedBodyParts = this.getBodyParts(this.room.energyAvailable, spawnDetails.memory?.job);
+        if (err === OK) {
+            this.spawnQueue.shift();
+            // Nach dem Spawn den frischen Creep vom Spawn schubsen
+            this.spawn.pos.pushCreepsAway();
+        } else if (err === ERR_NOT_ENOUGH_ENERGY) {
+            // Versuche mit abgespecktem Body zu spawnen
+            const fallbackBody = this.getBodyParts(this.room.energyAvailable, entry.memory?.job);
+            if (this.spawn.spawnCreep(fallbackBody, entry.name, { memory: entry.memory as CreepMemory }) === OK) {
+                this.spawnQueue.shift();
+                this.spawn.pos.pushCreepsAway();
+            }
+        } else {
+            console.log(`Error while spawning: ${err} with body ${body}`);
+        }
+        // Bei ERR_BUSY o. ä. wird im nächsten Tick erneut versucht
+    }
 
-		if (spawnDetails.bodyParts && spawnDetails.bodyParts.length > 0) {
-			//this.spawnQueue.splice(spawnDetailIndex, 1);
-			spawnBodyParts = spawnDetails.bodyParts;
-		} else {
-			spawnBodyParts = generatedBodyParts;
-		}
+    // Hilfsfunktionen
+    private countAlive(role: string, task?: string): number {
+        return _.filter(Game.creeps, c =>
+            c.memory.job === role && (!task || c.memory.task === task)
+        ).length;
+    }
 
-		err = this.spawn.spawnCreep(spawnBodyParts, spawnDetails.name, { memory: spawnDetails.memory as CreepMemory });
+    private countInQueue(role: string, task?: string): number {
+        return this.spawnQueue.filter(e =>
+            e.memory?.job === role && (!task || e.memory?.task === task)
+        ).length;
+    }
 
-		if (err === ERR_NOT_ENOUGH_ENERGY) {
-			err = this.spawn.spawnCreep(generatedBodyParts, spawnDetails.name, { memory: spawnDetails.memory as CreepMemory });
-		}
+    private neededMiners(): number {
+        return Math.max(0, this.stats.resourceCount - this.stats.roles.miner);
+    }
 
-		if (err == OK) {
-			this.spawnQueue.splice(spawnDetailIndex, 1);
-		} else if (err == ERR_BUSY) {
-			this.spawn.pos.pushCreepsAway();
-		} else if (utils.DEBUG) {
-			log.error(err.toString());
-		}
-	}
+    private neededTransporters(): number {
+        const req = Math.floor((Memory.transportRequests?.length || this.stats.resourceCount) *
+            Memory.settings.transporterPerSource);
+        return Math.max(0, req - this.stats.roles.transporter);
+    }
+
+    private neededWorkers(): { count: number, task: string } {
+        for (const project of this.buildQueue) {
+            if (project.cost && project.cost > 0) {
+                const required = workersNeededForProject(project, this.room);
+                const assigned = this.countAlive('worker', project.name) + this.countInQueue('worker', project.name);
+                const missing = Math.max(0, required - assigned);
+                if (missing > 0) {
+                    return { count: missing, task: project.name };
+                }
+            }
+        }
+        return { count: 0, task: '' };
+    }
 
 	checkSpawnsNeeded() {
 		let jobs = ['miner', 'transporter', 'worker', 'defender', 'ranged', 'healer'];
@@ -195,73 +266,20 @@ export class HandleSpawn {
 
 			switch (jobs[i]) {
 				case "miner":
-					neededCreeps = (this.stats.resourceCount - this.stats.roles.miner);
+					neededCreeps = this.neededMiners()
 					break;
 
 				case "transporter":
 					//neededCreeps = Math.min(Math.floor((this.stats.resourceCount * 2 + (this.stats.roles.worker / 4)) - this.stats.roles.transporter), 20);
-                    const length = Memory.transportRequests?.length;
-                    neededCreeps =
-                        Math.floor(
-                            (length ? length : this.stats.resourceCount) * Memory.settings.transporterPerSource
-                        ) - this.stats.roles.transporter;
+                    neededCreeps = this.neededTransporters()
 					break;
 
 				case "worker": {
-					for (let i = 0; i < this.buildQueue.length; i++) {
-						if ((this.buildQueue[i].cost as number) > 0) {
-							neededCreeps = this.getWorkerForTask(this.buildQueue[i].name);
-
-                            // console.log(`neededWorker: ${neededCreeps}`);
-							if (neededCreeps > 0) {
-								task = this.buildQueue[i].name;
-								break;
-							}
-						}
-					}
+					let neededWorkers = this.neededWorkers();
+                    neededCreeps = neededWorkers.count
+                    task = neededWorkers.task
                     break;
 				}
-
-                case 'defender': {
-                    // Einfacher Nahkämpfer: zwei TOUGH, zwei ATTACK, zwei MOVE
-                    const parts: BodyPartConstant[] = [];
-                    const cost = (t: BodyPartConstant, count: number) => {
-                        for (let i = 0; i < count; i++) {
-                            parts.push(t);
-                            // available.energy -= BODYPART_COST[t];
-                        }
-                    };
-                    cost(TOUGH, 2);
-                    cost(ATTACK, 2);
-                    cost(MOVE, 2);
-                    return parts;
-                }
-
-                case 'ranged': {
-                    const parts: BodyPartConstant[] = [];
-                    const cost = (t: BodyPartConstant, count: number) => {
-                        for (let i = 0; i < count; i++) {
-                            parts.push(t);
-                            // available.energy -= BODYPART_COST[t];
-                        }
-                    };
-                    cost(RANGED_ATTACK, 2);
-                    cost(MOVE, 2);
-                    return parts;
-                }
-
-                case 'healer': {
-                    const parts: BodyPartConstant[] = [];
-                    const cost = (t: BodyPartConstant, count: number) => {
-                        for (let i = 0; i < count; i++) {
-                            parts.push(t);
-                            // available.energy -= BODYPART_COST[t];
-                        }
-                    };
-                    cost(HEAL, 2);
-                    cost(MOVE, 2);
-                    return parts;
-                }
 			}
 
 			_.forEach(this.spawnQueue, spawn => {
@@ -269,6 +287,8 @@ export class HandleSpawn {
 					neededCreeps--;
 				}
 			});
+
+            task = (jobs[i] === 'defender' || jobs[i] === 'ranged' || jobs[i] === 'healer') ? '' : task
 
 			for (j = 0; j < Math.min(1, neededCreeps); j++) {
 				const creepName = `${jobs[i]}_${this.room.name}_${Game.time + j}`;
@@ -295,8 +315,10 @@ export class HandleSpawn {
 
 	addPart(body: { parts: BodyPartConstant[] }, available: { energy: number; }, count: number, part: BodyPartConstant) {
 		for (let i = 0; i < count; i++) {
-			body.parts.push(part);
-			available.energy -= BODYPART_COST[part];
+            if (available.energy - BODYPART_COST[part] >= 0) {
+                body.parts.push(part);
+                available.energy -= BODYPART_COST[part];
+            }
 		}
 	}
 
@@ -328,6 +350,25 @@ export class HandleSpawn {
 				this.addPart(body, available, firstPartCount.MOVE, MOVE);
 
 				break;
+
+            case 'defender': {
+                this.addPart(body, available, 4, TOUGH);
+                this.addPart(body, available, 2, MOVE);
+                this.addPart(body, available, 2, ATTACK);
+                break;
+            }
+
+            case 'ranged': {
+                this.addPart(body, available, 3, MOVE);
+                this.addPart(body, available, 1, RANGED_ATTACK);
+                break;
+            }
+
+            case 'healer': {
+                this.addPart(body, available, 1, MOVE);
+                this.addPart(body, available, 1, HEAL);
+                break;
+            }
 		}
 
 		return body.parts;
