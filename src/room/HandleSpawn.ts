@@ -44,7 +44,9 @@ export class HandleSpawn {
 		this.room.stats = this.stats;
 	}
 
-	checkForInitCreeps() {
+    private ROLES_PRIORITY: string[] = ['miner','transporter','worker','defender','ranged','healer'];
+
+    checkForInitCreeps() {
 		if (this.room.name === this.memory.origin && !this.memory.scouted) {
 			this.memory.scouted = true;
 			this.room.memory.scouted = true;
@@ -110,381 +112,123 @@ export class HandleSpawn {
 		}
 	}
 
-	checkSpawnQueueForJob(job: string, name: string): number {
-		for (let i = 0; i < this.spawnQueue.length; i++) {
-			if (this.spawnQueue[i].memory?.job == job || (name !== '' && this.spawnQueue[i].name.includes(name)))
-				return i;
-		}
-		return -1;
-	}
+    /** Rückt Creeps vom Spawn weg, auch wenn der Spawn nicht BUSY ist */
+    private clearSpawnPad(): void {
+        const free = this.spawn.pos.getFreePositions(1, false).length;
+        if (free < 1) this.spawn.pos.pushCreepsAway();
+    }
 
-	getSpawnPriorityList(): string[][] {
-		const transporter = this.room.stats.roles.transporter;
-		const worker = this.room.stats.roles.worker;
-		let spawnPriorityList: string[][] = [['', 'init']];
+    /** Erstellt ein Creep aus der Queue und sorgt danach für Platz */
+    private spawnCreepFromQueue(): void {
+        if (!this.spawn || this.spawn.spawning || this.room.energyAvailable < 300) return;
 
-		if (transporter <= Memory.settings.transporterPerSource) {
-			spawnPriorityList.push(['transporter', ''], ['miner', ''], ['worker', '']);
-		} else if (transporter < this.room.stats.roles.miner && (this.room.buildQueue.length <= 0 || this.room.buildQueue.length > 0 && worker > 0)) {
-			spawnPriorityList.push(['miner', ''], ['transporter', ''], ['worker', '']);
-		} else {
-			spawnPriorityList.push(['miner', ''], ['worker', ''], ['transporter', '']);
-		}
+        // immer Spawnbereich freiräumen, bevor gespawnt wird
+        this.clearSpawnPad();
 
-		spawnPriorityList.push(['scout', '']);
-		return spawnPriorityList;
-	}
+        const job = this.spawnQueue[0];
+        const desiredBody = this.getBodyParts(this.room.energyCapacityAvailable, job.memory?.job);
+        const body = (job.bodyParts?.length ?? 0) > 0 ? job.bodyParts! : desiredBody;
 
-	// spawnCreepFromQueue() {
-	// 	let spawnDetails: colonieQueueElement = { name: '' };
-	// 	let spawnDetailIndex: number = -1;
-	// 	let generatedBodyParts: BodyPartConstant[] = [];
-	// 	let spawnBodyParts: BodyPartConstant[] = [];
-	// 	const spawnPriorityList: string[][] = this.getSpawnPriorityList();
-	// 	const energyCapacity = this.room.getEnergyCapacity();
-	// 	let err = 0;
-    //
-	// 	if (this.room.energyAvailable < 300 || !this.spawn) {
-	// 		return;
-	// 	}
-    //
-	// 	for (let i = 0; i < spawnPriorityList.length; i++) {
-	// 		spawnDetailIndex = this.checkSpawnQueueForJob(spawnPriorityList[i][0], spawnPriorityList[i][1]);
-    //
-	// 		if (spawnDetailIndex >= 0) {
-	// 			break;
-	// 		}
-	// 	}
-    //
-	// 	if (this.room.stats.roles.transporter > 0 && this.room.energyAvailable < energyCapacity && this.room.stats.totalAvailableEnergy >= energyCapacity) {
-	// 		return;
-	// 	}
-    //
-	// 	spawnDetails = this.spawnQueue[spawnDetailIndex];
-	// 	generatedBodyParts = this.getBodyParts(this.room.energyAvailable, spawnDetails.memory?.job);
-    //
-	// 	if (spawnDetails.bodyParts && spawnDetails.bodyParts.length > 0) {
-	// 		//this.spawnQueue.splice(spawnDetailIndex, 1);
-	// 		spawnBodyParts = spawnDetails.bodyParts;
-	// 	} else {
-	// 		spawnBodyParts = generatedBodyParts;
-	// 	}
-    //
-	// 	err = this.spawn.spawnCreep(spawnBodyParts, spawnDetails.name, { memory: spawnDetails.memory as CreepMemory });
-    //
-	// 	if (err === ERR_NOT_ENOUGH_ENERGY) {
-	// 		err = this.spawn.spawnCreep(generatedBodyParts, spawnDetails.name, { memory: spawnDetails.memory as CreepMemory });
-	// 	}
-    //
-	// 	if (err == OK) {
-	// 		this.spawnQueue.splice(spawnDetailIndex, 1);
-	// 	} else if (err == ERR_BUSY) {
-	// 		this.spawn.pos.pushCreepsAway();
-	// 	} else if (utils.DEBUG) {
-	// 		log.error(err.toString());
-	// 	}
-	// }
+        // genügende Energie? sonst warten (kein Downsizing)
+        if (this.room.energyAvailable < _.sum(body.map(p => BODYPART_COST[p]))) return;
 
-    public spawnCreepFromQueue(): void {
-        if (!this.spawn || this.room.energyAvailable < 150 || this.spawn.spawning) return;
-
-        // Spawn-Plattform frei räumen
-        let freePositionAroundSpawn = this.spawn.pos.getFreePositions(1, false).length;
-        if (freePositionAroundSpawn < 1) {
-            console.log("pushing Creeps!");
-            this.spawn.pos.pushCreepsAway();
-        }
-
-        const entry = this.spawnQueue[0];
-        const body = entry.bodyParts && entry.bodyParts.length > 0
-            ? entry.bodyParts
-            : this.getBodyParts(this.room.energyAvailable, entry.memory?.job);
-
-        const err = this.spawn.spawnCreep(body, entry.name, { memory: entry.memory as CreepMemory });
-
-        if (err === OK) {
+        const result = this.spawn.spawnCreep(body, job.name, { memory: job.memory as CreepMemory });
+        if (result === OK) {
             this.spawnQueue.shift();
-            // Nach dem Spawn den frischen Creep vom Spawn schubsen
-            this.spawn.pos.pushCreepsAway();
-        } else if (err === ERR_NOT_ENOUGH_ENERGY) {
-            // Versuche mit abgespecktem Body zu spawnen
-            const fallbackBody = this.getBodyParts(this.room.energyAvailable, entry.memory?.job);
-            if (this.spawn.spawnCreep(fallbackBody, entry.name, { memory: entry.memory as CreepMemory }) === OK) {
-                this.spawnQueue.shift();
-                this.spawn.pos.pushCreepsAway();
-            }
-        } else {
-            console.log(`Error while spawning: ${err} with body ${body}`);
+            // nach jedem Spawn Freiräumen
+            this.clearSpawnPad();
         }
-        // Bei ERR_BUSY o. ä. wird im nächsten Tick erneut versucht
     }
 
-    // Hilfsfunktionen
+    /** Zählt lebende Creeps einer Rolle (optional mit task) */
     private countAlive(role: string, task?: string): number {
-        return _.filter(Game.creeps, c =>
-            c.memory.job === role && (!task || c.memory.task === task)
-        ).length;
+        return _.filter(Game.creeps, c => c.memory.job === role && (!task || c.memory.task === task)).length;
     }
 
-    private countInQueue(role: string, task?: string): number {
-        return this.spawnQueue.filter(e =>
-            e.memory?.job === role && (!task || e.memory?.task === task)
-        ).length;
+    /** Zählt Creeps einer Rolle in der SpawnQueue */
+    private countQueued(role: string, task?: string): number {
+        return this.spawnQueue.filter(e => e.memory?.job === role && (!task || e.memory.task === task)).length;
     }
 
+    /** Ermittelt, wie viele Miner fehlen: pro Ressource ein Miner */
     private neededMiners(): number {
-        return Math.max(0, this.stats.resourceCount - this.stats.roles.miner);
+        const desired = this.stats.resourceCount;
+        return Math.max(0, desired - (this.stats.roles.miner + this.countQueued('miner')));
     }
 
+    /** Ermittelt, wie viele Transporter fehlen */
     private neededTransporters(): number {
-        const req = Math.floor((Memory.transportRequests?.length || this.stats.resourceCount) *
-            Memory.settings.transporterPerSource);
-        return Math.max(0, req - this.stats.roles.transporter);
+        const desired = Math.floor((Memory.transportRequests?.length || this.stats.resourceCount) * Memory.settings.transporterPerSource);
+        return Math.max(0, desired - (this.stats.roles.transporter + this.countQueued('transporter')));
     }
 
+    /** Ermittelt, welche (Bau-)Aufgabe Worker derzeit brauchen */
     private neededWorkers(): { count: number, task: string } {
         for (const project of this.buildQueue) {
             if (project.cost && project.cost > 0) {
                 const required = workersNeededForProject(project, this.room);
-                const assigned = this.countAlive('worker', project.name) + this.countInQueue('worker', project.name);
+                const assigned = this.countAlive('worker', project.name) + this.countQueued('worker', project.name);
                 const missing = Math.max(0, required - assigned);
-                if (missing > 0) {
-                    return { count: missing, task: project.name };
-                }
+                if (missing > 0) return { count: missing, task: project.name };
             }
         }
         return { count: 0, task: '' };
     }
 
-	checkSpawnsNeeded() {
-		let jobs = ['miner', 'transporter', 'worker', 'defender', 'ranged', 'healer'];
-		let neededCreeps = 0;
-		let task = '';
-		let i = 0, j = 0;
+    /** Bestimmt nach Priorität, welches Creep in die Queue kommt */
+    private checkSpawnsNeeded(): void {
+        for (const role of this.ROLES_PRIORITY) {
+            let missing = 0;
+            let task = '';
 
-		for (i = 0; i < jobs.length; i++) {
-
-			switch (jobs[i]) {
-				case "miner":
-					neededCreeps = this.neededMiners()
-					break;
-
-				case "transporter":
-					//neededCreeps = Math.min(Math.floor((this.stats.resourceCount * 2 + (this.stats.roles.worker / 4)) - this.stats.roles.transporter), 20);
-                    neededCreeps = this.neededTransporters()
-					break;
-
-				case "worker": {
-					let neededWorkers = this.neededWorkers();
-                    neededCreeps = neededWorkers.count
-                    task = neededWorkers.task
+            switch (role) {
+                case 'miner':       missing = this.neededMiners(); break;
+                case 'transporter': missing = this.neededTransporters(); break;
+                case 'worker':
+                    const workerNeed = this.neededWorkers();
+                    missing = workerNeed.count;
+                    task = workerNeed.task;
                     break;
-				}
-			}
+                // TODO: defender/ranged/healer: Abhängig von Hostiles
+            }
 
-			_.forEach(this.spawnQueue, spawn => {
-				if (spawn.memory && (spawn.memory.job === jobs[i] && spawn.memory.task.includes(task.slice(0, 3)))) {
-					neededCreeps--;
-				}
-			});
-
-            task = (jobs[i] === 'defender' || jobs[i] === 'ranged' || jobs[i] === 'healer') ? '' : task
-
-			for (j = 0; j < Math.min(1, neededCreeps); j++) {
-				const creepName = `${jobs[i]}_${this.room.name}_${Game.time + j}`;
-
-				console.log(`SPAWN (${neededCreeps}): Added creep ${creepName} with Task ${task} to spawnQueue`);
-				this.spawnQueue.push({
-					bodyParts: this.getBodyParts(this.room.energyCapacityAvailable,
-						jobs[i]),
-					name: creepName,
-					memory: {
-						job: jobs[i],
-						working: false,
-						target: null,
-						task: task,
-						origin: this.room.name,
+            if (missing > 0) {
+                const creepName = `${role}_${this.room.name}_${Game.time}`;
+                const body = this.getBodyParts(this.room.energyCapacityAvailable, role);
+                this.spawnQueue.push({
+                    bodyParts: body,
+                    name: creepName,
+                    memory: {
+                        job: role,
+                        working: false,
+                        target: null,
+                        task: task,
+                        origin: this.room.name,
                         amountAssigned: 0,
-						lastPositions: [],
-						pathToTarget: [],
-					}
-				});
-			}
-		}
-	}
-
-	addPart(body: { parts: BodyPartConstant[] }, available: { energy: number; }, count: number, part: BodyPartConstant) {
-		for (let i = 0; i < count; i++) {
-            if (available.energy - BODYPART_COST[part] >= 0) {
-                body.parts.push(part);
-                available.energy -= BODYPART_COST[part];
+                        lastPositions: [],
+                        pathToTarget: []
+                    }
+                });
+                break; // pro Tick nur ein Creep einreihen
             }
-		}
-	}
+        }
+    }
 
-	getBodyParts(availableEnergy: number, job?: string): BodyPartConstant[] {
-		const body = { parts: [] };
-		const available = { energy: availableEnergy };
-		let firstPart = 0;
-
-		switch (job) {
-			case 'miner':
-				firstPart = Math.floor((availableEnergy - 50) / 100);
-
-				this.addPart(body, available, (firstPart >= 6 ? 6 : firstPart), WORK);
-				this.addPart(body, available, 1, MOVE);
-				break;
-
-			case 'transporter':
-				firstPart = Math.floor((availableEnergy / 2) / 50);
-
-				this.addPart(body, available, firstPart, MOVE);
-				this.addPart(body, available, Math.floor(available.energy / 50), CARRY);
-				break;
-
-			case 'worker':
-				const firstPartCount = this.calculateBodyParts(availableEnergy);
-
-				this.addPart(body, available, firstPartCount.WORK, WORK);
-				this.addPart(body, available, firstPartCount.CARRY, CARRY);
-				this.addPart(body, available, firstPartCount.MOVE, MOVE);
-
-				break;
-
-            case 'defender': {
-                this.addPart(body, available, 4, TOUGH);
-                this.addPart(body, available, 2, MOVE);
-                this.addPart(body, available, 2, ATTACK);
-                break;
-            }
-
-            case 'ranged': {
-                this.addPart(body, available, 3, MOVE);
-                this.addPart(body, available, 1, RANGED_ATTACK);
-                break;
-            }
-
-            case 'healer': {
-                this.addPart(body, available, 1, MOVE);
-                this.addPart(body, available, 1, HEAL);
-                break;
-            }
-		}
-
-		return body.parts;
-	}
-
-	calculateBodyParts(energy: number) {
-
-		// const energyAvailable = Math.floor(energy / 50);
-		// const isOdd = energyAvailable % 2 !== 0;
-		// /* const energyHalf = Math.floor(energyAvailable / 2);
-		// const energyFourth = Math.floor(energyHalf / 2); */
-
-		const energyCap = this.room.energyCapacityAvailable;
-		const body = getBuilderBody(energyCap);
-
-		const partCount = {
-			WORK: 0,
-			CARRY: 0,
-			MOVE: 0,
-		};
-
-		body.forEach(part => {
-			switch (part) {
-                case "carry":
-					partCount.CARRY = partCount.CARRY +1;
-                    break;
-                case "move":
-					partCount.MOVE = partCount.MOVE +1;
-                    break;
-                case "work":
-					partCount.WORK = partCount.WORK +1;
-					break;
-            }
-		})
-
-		// const leftEnergy = energyAvailable - (partCount.CARRY + partCount.MOVE);
-		//
-		// if (leftEnergy % 2 === 0) {
-		// 	partCount.WORK = Math.floor(leftEnergy / 2);
-		// } else {
-		// 	partCount.WORK = Math.floor(leftEnergy / 2);
-		// 	partCount.MOVE += 1;
-		// }
-
-		/*
-		const energyHalf = Math.floor(energyAvailable / 2);
-		const partCount = {
-			WORK: Math.ceil(energyHalf / 4),
-			CARRY: 0,
-			MOVE: Math.floor(energyHalf / 2) + (isOdd ? 1 : 0),
-		};
-
-		let remainingEnergy = energyAvailable - (partCount.WORK * 2 + partCount.MOVE);
-
-		if (remainingEnergy > 0) {
-			partCount.CARRY = Math.floor(remainingEnergy / 2);
-			partCount.MOVE += remainingEnergy - partCount.CARRY;
-		} */
-
-		// const totalCost = Object.keys(partCount).reduce((sum, part) => {
-		// 	return sum + BODYPART_COST[part as BodyPartConstant] * BODYPART_COST[part as BodyPartConstant];
-		// }, 0);
-
-		return partCount;
-	}
-
-	// getWorkerForTask(task: string) {
-	// 	if (!task || task == '') {
-	// 		return 0;
-	// 	}
-	//
-	// 	const taskData = this.buildQueue.find((item) => item.name == task);
-	// 	if (!taskData || (taskData.cost && taskData.cost <= 0)) {
-	// 		return 0;
-	// 	}
-	//
-    //     // Beispiel beim Berechnen der Worker-Anzahl
-    //     const positionsAvailable = maxWorkersForTarget(taskData.pos, task.includes('controller'));
-    //     // durchschnittliche WORK-Teile pro Creep aus deinem Body‑Design
-    //     const averageWorkParts = 5;
-    //     const workersNeeded = workersNeededForProject(taskData, this.room);
-	// 	return positionsAvailable - workersNeeded;
-	//
-	// 	// const taskCost: number = taskData.cost as number;
-	// 	// const workBodyPartCount = this.calculateBodyParts(this.room.energyCapacityAvailable || this.room.energyAvailable).WORK;
-	// 	// const workloadPerThousandTicks = workBodyPartCount * (task.includes('controller') ? 1000 : 5000);
-	// 	// let creepSpawnCount = Math.ceil(taskCost / workloadPerThousandTicks);
-	// 	//
-	// 	// if (taskData.neededCreeps && taskData.neededCreeps <= -1) {
-	// 	// 	taskData.neededCreeps = Math.min(creepSpawnCount, 20);
-	// 	// } else {
-	// 	// 	const creepCount = _.filter(Game.creeps, (creep) => creep.memory.job == 'worker' && creep.getTask() === task).length;
-	// 	// 	creepSpawnCount = Math.max(0, (taskData.neededCreeps as number) - creepCount);
-	// 	// }
-	// 	//
-	// 	// creepSpawnCount = Math.min(creepSpawnCount, 20);
-	// 	// return creepSpawnCount;
-	// }
-
-	getWorkerForTask(task: string): number {
-		if (!task) return 0;
-		const taskData = this.buildQueue.find(item => item.name === task);
-		if (!taskData || !taskData.cost || taskData.cost <= 0) return 0;
-
-		// todo needs to be optimized
-		const assignedAlive = _.filter(Game.creeps, c =>
-			c.memory.job === 'worker' && c.memory.task === task
-		).length;
-		const assignedInQueue = this.spawnQueue.filter(s =>
-			s.memory?.job === 'worker' && s.memory?.task === task
-		).length;
-		const needed = workersNeededForProject(taskData, this.room);
-		let missing = Math.max(0, needed - assignedAlive - assignedInQueue);
-
-		// Anzahl der notwendigen Worker unter Berücksichtigung von Baupositionen und Projektkosten
-		return missing;
-	}
+    /** Erstellt die Körper entsprechend der Rolle und des Energie-Caps */
+    private getBodyParts(energyCap: number, role?: string): BodyPartConstant[] {
+        switch (role) {
+            case 'miner':
+                // maximal 6 WORK und ein MOVE
+                const workCount = Math.min(6, Math.floor((energyCap - 50) / 100));
+                return Array(workCount).fill(WORK).concat([MOVE]);
+            case 'transporter':
+                const pairCount = Math.floor(energyCap / 100);
+                return Array(pairCount).fill(CARRY).concat(Array(pairCount).fill(MOVE));
+            case 'worker':
+            default:
+                // getBuilderBody nutzt energyCap, um WORK/CARRY/MOVE Verhältnis zu ermitteln
+                return getBuilderBody(energyCap);
+        }
+    }
 
 }

@@ -187,21 +187,21 @@ export class RoomBuilder implements IBaseRoomClass {
         if (!canScheduleNewProject(this.room)) return;
 
         // 1. Containerbau forcieren, falls Level ≥ 2 und keiner vorhanden
-        if (this.rcl > 0 && !this.containerNearController()) {
-            const containerPos = this.findOptimalContainerPosition(this.spawn, controller);
-            if (containerPos) {
-                const containerProject: buildQueueElement = {
-                    name: `controller_container_${Game.time}`,
-                    cost: 5000,
-                    structures: [{ pos: containerPos, type: STRUCTURE_CONTAINER }],
-                    neededCreeps: -1,
-                    pos: new RoomPosition(0, 0, this.room.name),
-                    id: ""
-                };
-                this.room.buildQueue.push(containerProject);
-                return; // erst Container bauen
-            }
-        }
+        // if (this.rcl > 1 && !this.containerNearController()) {
+        //     const containerPos = this.findOptimalContainerPosition(this.spawn, controller);
+        //     if (containerPos) {
+        //         const containerProject: buildQueueElement = {
+        //             name: `controller_container_${Game.time}`,
+        //             cost: 5000,
+        //             structures: [{ pos: containerPos, type: STRUCTURE_CONTAINER }],
+        //             neededCreeps: -1,
+        //             pos: containerPos,
+        //             id: ""
+        //         };
+        //         this.room.buildQueue.push(containerProject);
+        //         return; // erst Container bauen
+        //     }
+        // }
 
         // 2. Upgradebudget festlegen
         const remaining = controller.progressTotal - controller.progress;
