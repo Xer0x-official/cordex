@@ -9,6 +9,7 @@ import { LogLevel } from "./enums/loglevel";
 // import './prototypes/room/setup';
 import './prototypes/creep';
 import './prototypes/room';
+import { TransportManager } from "logistics/TransportManager";
 const roomSetupOffset = Game.time + 3;
 
 log.alert("✨=== Global Reset ===✨");
@@ -45,6 +46,20 @@ export function loop() {
 	if (cpuAfterRoom > (cpuBeforeRoom * 1.5)) {
 		console.log(`CPU-AfterRoom: ${cpuBeforeRoom} -> ${cpuAfterRoom}`);
 	} */
+
+    for (let roomsKey in Memory.rooms) {
+        let actualRoom: Room = Game.rooms[roomsKey];
+        if (actualRoom) {
+            TransportManager.collectRequests(actualRoom);
+        }
+    }
+
+    // freie Transporter einsammeln
+    const freeTransporters = _.filter(Game.creeps, c => {
+        if (c.spawning) return false;
+        return c.memory.job === 'transporter' && (!c.memory.transportTask || c.memory.amountAssigned == 0)
+    });
+    TransportManager.assignTasks(freeTransporters);
 
     const miner: CreepLogic[] = [];
     const transporter: CreepLogic[] = [];

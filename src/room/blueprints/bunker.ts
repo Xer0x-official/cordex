@@ -24,7 +24,7 @@
 
 export const bunkerMatrix: (undefined | bluePrintMatrixElement)[][] = [
     [undefined,		                    undefined,			                undefined,			                    { rcl: 2, type: STRUCTURE_ROAD},        undefined,                              undefined,                          undefined],
-    [undefined,		                    undefined,			                { rcl: 2, type: STRUCTURE_ROAD},	    undefined,                              { rcl: 2, type: STRUCTURE_ROAD},        undefined,                          undefined],
+    [undefined,		                    undefined,			                { rcl: 2, type: STRUCTURE_ROAD},	    { rcl: 1, type: STRUCTURE_SPAWN},       { rcl: 2, type: STRUCTURE_ROAD},        undefined,                          undefined],
     [undefined,		                    { rcl: 2, type: STRUCTURE_ROAD},	{ rcl: 1, type: STRUCTURE_CONTAINER},   { rcl: 2, type: STRUCTURE_ROAD},        { rcl: 1, type: STRUCTURE_CONTAINER},   { rcl: 2, type: STRUCTURE_ROAD},    undefined],
     [{ rcl: 2, type: STRUCTURE_ROAD},	{ rcl: 6, type: STRUCTURE_SPAWN},	{ rcl: 2, type: STRUCTURE_ROAD},	    { rcl: 6, type: STRUCTURE_LINK},        { rcl: 2, type: STRUCTURE_ROAD},        { rcl: 7, type: STRUCTURE_SPAWN},   { rcl: 2, type: STRUCTURE_ROAD}],
     [undefined,		                    { rcl: 2, type: STRUCTURE_ROAD},	{ rcl: 2, type: STRUCTURE_TOWER},	    { rcl: 3, type: STRUCTURE_STORAGE},     { rcl: 4, type: STRUCTURE_TOWER},       { rcl: 2, type: STRUCTURE_ROAD},    undefined],

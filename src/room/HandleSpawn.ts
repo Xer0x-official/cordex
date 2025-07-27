@@ -56,6 +56,7 @@ export class HandleSpawn {
 					cost: 150,
 					target: null,
 					origin: this.room.name,
+                    amountAssigned: 0,
 					task: '',
 					lastPositions: [] as RoomPosition[],
 					pathToTarget: [] as number[],
@@ -78,6 +79,7 @@ export class HandleSpawn {
 						cost: 150,
 						target: null,
 						origin: this.room.name,
+                        amountAssigned: 0,
 						task: '',
 						lastPositions: [] as RoomPosition[],
 						pathToTarget: [] as number[],
@@ -92,6 +94,7 @@ export class HandleSpawn {
 						cost: 150,
 						target: null,
 						origin: this.room.name,
+                        amountAssigned: 0,
 						task: '',
 						lastPositions: [] as RoomPosition[],
 						pathToTarget: [] as number[],
@@ -190,7 +193,11 @@ export class HandleSpawn {
 
 				case "transporter":
 					//neededCreeps = Math.min(Math.floor((this.stats.resourceCount * 2 + (this.stats.roles.worker / 4)) - this.stats.roles.transporter), 20);
-					neededCreeps = Math.floor(this.stats.resourceCount * Memory.settings.transporterPerSource) - this.stats.roles.transporter;
+                    const length = Memory.transportRequests?.length;
+                    neededCreeps =
+                        Math.floor(
+                            (length ? length : this.stats.resourceCount) * Memory.settings.transporterPerSource
+                        ) - this.stats.roles.transporter;
 					break;
 
 				case "worker": {
@@ -227,6 +234,7 @@ export class HandleSpawn {
 						target: null,
 						task: task,
 						origin: this.room.name,
+                        amountAssigned: 0,
 						lastPositions: [],
 						pathToTarget: [],
 					}

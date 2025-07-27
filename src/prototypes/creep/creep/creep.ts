@@ -395,6 +395,7 @@ function setWorkerTarget(creep: Creep, source: any, resourceSources: resourceSou
 	let i = 0;
 
 	sequence.push('container', 'storage', 'dropped');
+	// sequence.push('container', 'storage');
 
 	for (i = 0; i < sequence.length; i++) {
 		if (!resourceSources[sequence[i]] || resourceSources[sequence[i]].isEmpty) {

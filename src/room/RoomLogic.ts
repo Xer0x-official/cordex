@@ -49,9 +49,9 @@ export class RoomLogic implements IRoomLogic, IBaseRoomClass {
         //     }
         // }
 
-		// if (this.ticks < 100 || true) {
-		// 	this.room.distanceTransform(true);
-		// }
+		if (this.ticks < 100 || true) {
+			this.room.distanceTransform(true);
+		}
 
 		this._loadMemoryStatsForTick();
 
