@@ -53,6 +53,31 @@ export class RoomLogic implements IRoomLogic, IBaseRoomClass {
 			this.room.distanceTransform(true);
 		}
 
+        if (this.ticks % 5 === 0) { // alle 5 Ticks prüfen
+            const hostiles = this.room.find(FIND_HOSTILE_CREEPS);
+            if (hostiles.length > 0) {
+                // Prüfen, ob bereits ein Verteidiger in Spawn‑Queue steht
+                const hasDefenderQueued = this.room.spawnQueue.some(e => e.memory?.job === 'defender');
+                if (!hasDefenderQueued) {
+                    const name = `defender_${this.room.name}_${Game.time}`;
+                    this.room.spawnQueue.push({
+                        bodyParts: [], // wird von getBodyParts() generiert
+                        name: name,
+                        memory: {
+                            job: 'defender',
+                            origin: this.room.name,
+                            working: false,
+                            target: null,
+                            task: '',
+                            lastPositions: [],
+                            pathToTarget: [],
+                            amountAssigned: 0
+                        }
+                    });
+                }
+            }
+        }
+
 		this._loadMemoryStatsForTick();
 
 		this.room.colonieMemory.spawns.forEach(spawnId => {

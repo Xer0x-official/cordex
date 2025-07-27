@@ -3,6 +3,9 @@ import {Miner} from "./Miner";
 //import { Transporter } from "./Transporter";
 // import { Transporter } from "./transporter/Transporterv2";
 import { Transporter } from "./transporter/Transporterv4";
+import { Defender } from "./defender/Defender";
+import { RangedDefender } from "./defender/RangedDefender";
+import { Healer } from "./defender/Healer";
 //import { Worker } from "./Worker";
 import { Worker } from "./worker/Workerv3";
 import { Scout } from "./Scout";
@@ -36,6 +39,15 @@ export class CreepLogic implements ICreepClass {
 			case "worker":
 				new Worker(this.creep, this.memory);
 				break;
+            case "defender":
+                new Defender(this.creep, this.memory);
+                break;
+            case "ranged":
+                new RangedDefender(this.creep, this.memory);
+                break;
+            case "healer":
+                new Healer(this.creep, this.memory);
+                break;
 
 			default:
 				this.creep.suicide();

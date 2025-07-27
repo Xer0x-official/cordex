@@ -23,7 +23,11 @@ export function loop() {
 		log.warning("💎=== Script Loaded ===💎");
 	}
 
-	if (!Memory.colonies) {
+    if (!Memory.patrol) {
+        Memory.patrol = { points: [  ] };
+    }
+
+    if (!Memory.colonies) {
 		Memory.colonies = {};
 	}
 	// make a list of all of our rooms

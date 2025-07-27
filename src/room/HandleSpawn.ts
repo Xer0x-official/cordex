@@ -186,7 +186,7 @@ export class HandleSpawn {
 	}
 
 	checkSpawnsNeeded() {
-		let jobs = ['miner', 'transporter', 'worker'];
+		let jobs = ['miner', 'transporter', 'worker', 'defender', 'ranged', 'healer'];
 		let neededCreeps = 0;
 		let task = '';
 		let i = 0, j = 0;
@@ -208,8 +208,6 @@ export class HandleSpawn {
 					break;
 
 				case "worker": {
-
-
 					for (let i = 0; i < this.buildQueue.length; i++) {
 						if ((this.buildQueue[i].cost as number) > 0) {
 							neededCreeps = this.getWorkerForTask(this.buildQueue[i].name);
@@ -221,6 +219,47 @@ export class HandleSpawn {
 						}
 					}
 				}
+
+                case 'defender': {
+                    // Einfacher Nahkämpfer: zwei TOUGH, zwei ATTACK, zwei MOVE
+                    const parts: BodyPartConstant[] = [];
+                    const cost = (t: BodyPartConstant, count: number) => {
+                        for (let i = 0; i < count; i++) {
+                            parts.push(t);
+                            // available.energy -= BODYPART_COST[t];
+                        }
+                    };
+                    cost(TOUGH, 2);
+                    cost(ATTACK, 2);
+                    cost(MOVE, 2);
+                    return parts;
+                }
+
+                case 'ranged': {
+                    const parts: BodyPartConstant[] = [];
+                    const cost = (t: BodyPartConstant, count: number) => {
+                        for (let i = 0; i < count; i++) {
+                            parts.push(t);
+                            // available.energy -= BODYPART_COST[t];
+                        }
+                    };
+                    cost(RANGED_ATTACK, 2);
+                    cost(MOVE, 2);
+                    return parts;
+                }
+
+                case 'healer': {
+                    const parts: BodyPartConstant[] = [];
+                    const cost = (t: BodyPartConstant, count: number) => {
+                        for (let i = 0; i < count; i++) {
+                            parts.push(t);
+                            // available.energy -= BODYPART_COST[t];
+                        }
+                    };
+                    cost(HEAL, 2);
+                    cost(MOVE, 2);
+                    return parts;
+                }
 			}
 
 			_.forEach(this.spawnQueue, spawn => {

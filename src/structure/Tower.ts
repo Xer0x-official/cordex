@@ -21,12 +21,17 @@ export class Tower implements ITower, IBaseRoomClass {
 		let i = 0;
 		let err = 0;
 
-		enemies = this.room.find(FIND_HOSTILE_CREEPS);
-
-		if (enemies.length > 0) {
-			this.tower.attack(enemies[0]);
-			return;
-		}
+        enemies = this.room.find(FIND_HOSTILE_CREEPS);
+        if (enemies.length > 0) {
+            // Heiler oder am nächsten zur Steuerung
+            const target = _.min(enemies, (c) => {
+                // Heiler höher priorisieren (negativ = höhere Priorität)
+                const healParts = c.body.filter(p => p.type === HEAL).length;
+                return healParts > 0 ? -healParts : c.pos.getRangeTo(this.tower);
+            });
+            this.tower.attack(target);
+            return;
+        }
 
 		if (this.room.repairQueue.length > 0) {
 			targets = this.room.repairQueue;

@@ -266,6 +266,7 @@ interface Memory {
 	manager: any;
 	operations: any;
 	settings: any;
+    patrol: any;
 }
 
 
