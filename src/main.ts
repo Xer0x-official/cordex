@@ -1,5 +1,4 @@
 
-import * as Core from "./managers/Core";
 import { log } from "./utilities/Logger";
 import * as utils from "./utilities";
 import { RoomLogic } from "room/RoomLogic";
@@ -14,10 +13,7 @@ const roomSetupOffset = Game.time + 3;
 
 log.alert("✨=== Global Reset ===✨");
 
-
 export function loop() {
-	//Core.run();
-
 	if (!Memory.settings) {
 		Memory.settings = {};
 		Memory.settings.loggingLevel = LogLevel.Verbose;
