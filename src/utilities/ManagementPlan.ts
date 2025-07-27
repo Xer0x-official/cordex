@@ -130,7 +130,7 @@ export function getBuilderBody(availableEnergy: number): BodyPartConstant[] {
  * ```
  */
 export function findEnergyTarget(creep: Creep):
-    Id<Resource> | Id<Source> | Id<Mineral> | Id<AnyStructure> | Id<AnyCreep> | Id<ConstructionSite> | null | undefined {
+    Id<StructureContainer | StructureStorage | Resource | StructureLink | StructureTerminal> | null | undefined {
     const room = creep.room;
     // 1. Dropped energy within 6 tiles
     const dropped = room.find(FIND_DROPPED_RESOURCES, {
@@ -153,11 +153,11 @@ export function findEnergyTarget(creep: Creep):
         return closest?.id;
     }
     // 3. Fallback to harvesting a source in this room
-    const sources = room.find(FIND_SOURCES_ACTIVE);
-    if (sources.length > 0) {
-        const closest = creep.pos.findClosestByPath(sources);
-        return closest?.id;
-    }
+    // const sources = room.find(FIND_SOURCES_ACTIVE);
+    // if (sources.length > 0) {
+    //     const closest = creep.pos.findClosestByPath(sources);
+    //     return closest?.id;
+    // }
     // No energy found
     return undefined;
 }

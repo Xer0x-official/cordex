@@ -140,7 +140,7 @@ export class Worker implements ICreepClass{
 				for (let i = 0; i < 3; i++) {
                     const target = findEnergyTarget(this.creep);
                     if (target) {
-                        this.creep.memory.target = target;
+                        this.creep.memory.energyTarget = target;
                         this.state = State.IsSourceNear;
                         break;
                     }

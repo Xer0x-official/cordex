@@ -227,7 +227,7 @@ interface CreepMemory {
     amountAssigned: number,
     transportTask?: TransportTask,
 	target?: Id<Resource> | Id<Source> | Id<Mineral> | Id<AnyStructure> | Id<AnyCreep> | Id<ConstructionSite> | null,
-	energyTarget?: Id<StructureWithStorage> | Id<Resource> | null;
+	energyTarget?: Id<StructureContainer | StructureStorage | Resource | StructureLink | StructureTerminal> | null;
 }
 
 interface PowerCreepMemory {
@@ -311,7 +311,7 @@ interface RoomVisual {
 // Beschreibung einer Transportanfrage
 interface TransportRequest {
     id: string;
-    originId: Id<StructureWithStorage> | Id<Resource>;    // Objekt, von dem Energie geholt wird
+    originId: Id<StructureContainer | StructureStorage | Resource | StructureLink | StructureTerminal>;    // Objekt, von dem Energie geholt wird
     possibleDestinations: Id<Structure | AnyCreep>[]; // potenzielle Abnehmer
     amount: number;                           // benötigte Menge
     priority: number;
@@ -320,7 +320,7 @@ interface TransportRequest {
 // Daten, die einem Transporter zugewiesen werden
 interface TransportTask {
     requestId: string;
-    originId: Id<StructureWithStorage> | Id<Resource>;
-    targetId: Id<Source> | Id<Mineral<MineralConstant>> | Id<AnyStructure> | Id<AnyCreep> | Id<ConstructionSite<BuildableStructureConstant>>;
+    originId: Id<StructureContainer | StructureStorage | Resource | StructureLink | StructureTerminal>;
+    targetId: Id<Source> | Id<Mineral> | Id<AnyStructure> | Id<AnyCreep> | Id<ConstructionSite>;
     amount: number;
 }

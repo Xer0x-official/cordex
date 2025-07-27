@@ -353,37 +353,46 @@ export class HandleSpawn {
 		return partCount;
 	}
 
-	getWorkerForTask(task: string) {
-		if (!task || task == '') {
-			return 0;
-		}
+	// getWorkerForTask(task: string) {
+	// 	if (!task || task == '') {
+	// 		return 0;
+	// 	}
+	//
+	// 	const taskData = this.buildQueue.find((item) => item.name == task);
+	// 	if (!taskData || (taskData.cost && taskData.cost <= 0)) {
+	// 		return 0;
+	// 	}
+	//
+    //     // Beispiel beim Berechnen der Worker-Anzahl
+    //     const positionsAvailable = maxWorkersForTarget(taskData.pos, task.includes('controller'));
+    //     // durchschnittliche WORK-Teile pro Creep aus deinem Body‑Design
+    //     const averageWorkParts = 5;
+    //     const workersNeeded = workersNeededForProject(taskData, this.room);
+	// 	return positionsAvailable - workersNeeded;
+	//
+	// 	// const taskCost: number = taskData.cost as number;
+	// 	// const workBodyPartCount = this.calculateBodyParts(this.room.energyCapacityAvailable || this.room.energyAvailable).WORK;
+	// 	// const workloadPerThousandTicks = workBodyPartCount * (task.includes('controller') ? 1000 : 5000);
+	// 	// let creepSpawnCount = Math.ceil(taskCost / workloadPerThousandTicks);
+	// 	//
+	// 	// if (taskData.neededCreeps && taskData.neededCreeps <= -1) {
+	// 	// 	taskData.neededCreeps = Math.min(creepSpawnCount, 20);
+	// 	// } else {
+	// 	// 	const creepCount = _.filter(Game.creeps, (creep) => creep.memory.job == 'worker' && creep.getTask() === task).length;
+	// 	// 	creepSpawnCount = Math.max(0, (taskData.neededCreeps as number) - creepCount);
+	// 	// }
+	// 	//
+	// 	// creepSpawnCount = Math.min(creepSpawnCount, 20);
+	// 	// return creepSpawnCount;
+	// }
 
-		const taskData = this.buildQueue.find((item) => item.name == task);
-		if (!taskData || (taskData.cost && taskData.cost <= 0)) {
-			return 0;
-		}
+	getWorkerForTask(task: string): number {
+		if (!task) return 0;
+		const taskData = this.buildQueue.find(item => item.name === task);
+		if (!taskData || !taskData.cost || taskData.cost <= 0) return 0;
 
-        // Beispiel beim Berechnen der Worker-Anzahl
-        const positionsAvailable = maxWorkersForTarget(taskData.pos, task.includes('controller'));
-        // durchschnittliche WORK-Teile pro Creep aus deinem Body‑Design
-        const averageWorkParts = 5;
-        const workersNeeded = workersNeededForProject(taskData, this.room);
-		return positionsAvailable - workersNeeded;
-
-		// const taskCost: number = taskData.cost as number;
-		// const workBodyPartCount = this.calculateBodyParts(this.room.energyCapacityAvailable || this.room.energyAvailable).WORK;
-		// const workloadPerThousandTicks = workBodyPartCount * (task.includes('controller') ? 1000 : 5000);
-		// let creepSpawnCount = Math.ceil(taskCost / workloadPerThousandTicks);
-		//
-		// if (taskData.neededCreeps && taskData.neededCreeps <= -1) {
-		// 	taskData.neededCreeps = Math.min(creepSpawnCount, 20);
-		// } else {
-		// 	const creepCount = _.filter(Game.creeps, (creep) => creep.memory.job == 'worker' && creep.getTask() === task).length;
-		// 	creepSpawnCount = Math.max(0, (taskData.neededCreeps as number) - creepCount);
-		// }
-		//
-		// creepSpawnCount = Math.min(creepSpawnCount, 20);
-		// return creepSpawnCount;
+		// Anzahl der notwendigen Worker unter Berücksichtigung von Baupositionen und Projektkosten
+		return workersNeededForProject(taskData, this.room);
 	}
 
 }
