@@ -116,7 +116,7 @@ export class HandleSpawn {
 		const worker = this.room.stats.roles.worker;
 		let spawnPriorityList: string[][] = [['', 'init']];
 
-		if (transporter <= 0) {
+		if (transporter <= Memory.settings.transporterPerSource) {
 			spawnPriorityList.push(['transporter', ''], ['miner', ''], ['worker', '']);
 		} else if (transporter < this.room.stats.roles.miner && (this.room.buildQueue.length <= 0 || this.room.buildQueue.length > 0 && worker > 0)) {
 			spawnPriorityList.push(['miner', ''], ['transporter', ''], ['worker', '']);

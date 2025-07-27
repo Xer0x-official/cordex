@@ -66,7 +66,7 @@ export class Worker implements ICreepClass{
 				if (this.memory.target) {
 					this.target = Game.getObjectById(this.memory.target);
 					if (this.target) {
-						this.state = State.HasEnergy;
+						this.state = State.IsTargetNear;
 						break;
 					}
 				}
@@ -96,7 +96,8 @@ export class Worker implements ICreepClass{
 
             case State.HasEnergy: {
                 if (this.hatGenugEnergie()) {
-                    this.state = State.IsTargetNear;
+                    this.execute = Execute.Build;
+                    this.state = State.Execute;
                 } else {
                     this.state = State.FindEnergySource;
                 }
@@ -106,8 +107,7 @@ export class Worker implements ICreepClass{
 
             case State.IsTargetNear: {
 				if (this.creep.pos.getRangeTo(this.target.pos) <= 3 && this.creep.pos.roomName === this.target.pos.roomName) {
-					this.execute = Execute.Build;
-					this.state = State.Execute;
+                    this.state = State.HasEnergy
 					break;
 				}
 

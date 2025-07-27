@@ -1,5 +1,6 @@
 // src/logistics/TransportManager.ts
-import UUID from 'pure-uuid';
+import UUID from "pure-uuid";
+import { max } from "lodash";
 
 declare global {
     interface Memory {
@@ -111,9 +112,9 @@ export class TransportManager {
             if (!objA || !objB) return 0;
 
             // 1. Typ-Priorität: Resource (=1) vor Struktur (=2)
-            if (a.priority !== b.priority) {
-                return a.priority - b.priority;
-            }
+            // if (a.priority !== b.priority) {
+            //     return a.priority - b.priority;
+            // }
 
             // 2. Innerhalb derselben Gruppe: Sortierung nach Menge (desc)
             const getAmt = (o: Resource<ResourceConstant> | StructureWithStorage) =>
@@ -201,11 +202,21 @@ export class TransportManager {
                 const originObj = Game.getObjectById(req.originId)!;
                 // Nearest destination heuristisch: Distanz von Quelle zu Ziel schätzen
                 const destPos = Game.getObjectById(req.possibleDestinations[0])?.pos ?? originObj.pos;
-                const cost =
-                    creep.pos.getRangeTo(originObj.pos) +
-                    originObj.pos.getRangeTo(destPos) +
-                    (originObj instanceof StructureContainer || originObj instanceof StructureStorage ? 200 : 0);
-                costs[i][j] = cost;
+                // const cost =
+                //     creep.pos.getRangeTo(originObj.pos) +
+                //     originObj.pos.getRangeTo(destPos) +
+                //     ((req.priority - 1) * 100);
+
+                const originRoom = originObj.pos.roomName;
+                const destRoom = creep.room.name; // Carrier startet meist im Hauptraum
+                const roomDistance = Game.map.getRoomLinearDistance(originRoom, destRoom);
+
+                // Beispiel: jeder Raum Abstand zählt als 50 Felder
+                const interRoomPenalty = roomDistance * 10;
+                const rangeToSource = creep.pos.getRangeTo(originObj.pos) % 50;
+                const rangeToTarget = originObj.pos.getRangeTo(destPos) % 50;
+
+                costs[i][j] = Math.max(1, (rangeToSource + rangeToTarget + interRoomPenalty));
             }
         }
 
