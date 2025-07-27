@@ -358,14 +358,11 @@ export class Transporter implements ICreepClass {
                 const target: any = Game.getObjectById(this.memory.target!);
                 if (target && 'store' in target) {
                     const amount = Math.min(this.memory.amountAssigned!, target.store.getFreeCapacity(RESOURCE_ENERGY), this.creep.store.getUsedCapacity());
-                    let transfer = this.creep.transfer(target, RESOURCE_ENERGY, amount);
-                    if (transfer == ERR_FULL) {
-                        this.clearTask();
-                    } else {
-                        this.memory.amountAssigned! -= amount;
-                    }
+                    this.creep.transfer(target, RESOURCE_ENERGY, amount);
+                    this.memory.amountAssigned! -= amount;
                 }
-                if (this.memory.amountAssigned! <= 0 || !target || target.store.getFreeCapacity(RESOURCE_ENERGY) == 0) {
+
+                if (this.memory.amountAssigned! < 1 || !target || target.store.getFreeCapacity(RESOURCE_ENERGY) < 1) {
                     this.clearTask(); // Aufgabe erledigt oder Ziel tot
                 }
                 break;

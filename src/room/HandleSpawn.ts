@@ -391,8 +391,18 @@ export class HandleSpawn {
 		const taskData = this.buildQueue.find(item => item.name === task);
 		if (!taskData || !taskData.cost || taskData.cost <= 0) return 0;
 
+		// todo needs to be optimized
+		const assignedAlive = _.filter(Game.creeps, c =>
+			c.memory.job === 'worker' && c.memory.task === task
+		).length;
+		const assignedInQueue = this.spawnQueue.filter(s =>
+			s.memory?.job === 'worker' && s.memory?.task === task
+		).length;
+		const needed = workersNeededForProject(taskData, this.room);
+		let missing = Math.max(0, needed - assignedAlive - assignedInQueue);
+
 		// Anzahl der notwendigen Worker unter Berücksichtigung von Baupositionen und Projektkosten
-		return workersNeededForProject(taskData, this.room);
+		return missing;
 	}
 
 }

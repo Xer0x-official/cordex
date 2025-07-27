@@ -212,7 +212,7 @@ export class TransportManager {
                 const roomDistance = Game.map.getRoomLinearDistance(originRoom, destRoom);
 
                 // Beispiel: jeder Raum Abstand zählt als 50 Felder
-                const interRoomPenalty = roomDistance * 10;
+                const interRoomPenalty = roomDistance * 25;
                 const rangeToSource = creep.pos.getRangeTo(originObj.pos) % 50;
                 const rangeToTarget = originObj.pos.getRangeTo(destPos) % 50;
 
@@ -309,7 +309,22 @@ export class TransportManager {
             };
 
             // … innerhalb der for-Schleife beim Zuweisen:
-            const targetId = req.possibleDestinations.sort((a, b) => {
+            const targetId = req.possibleDestinations.filter(target => {
+                if (req.originId === target) {
+                    return false;
+                }
+
+                // let originObject = Game.getObjectById(req.originId);
+                // let targetObject = Game.getObjectById(target);
+                //
+                // if (!originObject || !targetObject) return false;
+                // if (originObject instanceof Structure && targetObject instanceof Structure) {
+                //     let originStructure = targetObject as Structure;
+                //     let targetStructure = targetObject as Structure;
+                //     return originStructure.structureType !== targetStructure.structureType;
+                // }
+                return true;
+            }).sort((a, b) => {
                 const objA = Game.getObjectById(a);
                 const objB = Game.getObjectById(b);
 

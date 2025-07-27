@@ -378,7 +378,7 @@ export class Worker implements ICreepClass{
 				if (this.creep.memory.energyTarget) {
 					let energyTarget = Game.getObjectById(this.creep.memory.energyTarget);
 
-					if (energyTarget !== null && !(energyTarget instanceof Resource)) {
+					if (energyTarget && !(energyTarget instanceof Resource)) {
 						this.creep.travelTo(energyTarget, {ignoreCreeps: false, preferHighway: true, range: 1});
 					}
 				}

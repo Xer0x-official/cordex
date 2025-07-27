@@ -114,6 +114,14 @@ export function getBuilderBody(availableEnergy: number): BodyPartConstant[] {
     return body;
 }
 
+// am Modul-Top-Level (nur einmal beim Laden des Scripts)
+const whiteListStructures = new Set<StructureConstant>([
+    STRUCTURE_CONTAINER,
+    STRUCTURE_STORAGE,
+    STRUCTURE_LINK,
+    STRUCTURE_TERMINAL
+]);
+
 /**
  * Find the best energy source for a worker.  This function orders
  * possible sources by preference: dropped energy within a short range,
@@ -130,11 +138,12 @@ export function getBuilderBody(availableEnergy: number): BodyPartConstant[] {
  * ```
  */
 export function findEnergyTarget(creep: Creep):
-    Id<StructureContainer | StructureStorage | Resource | StructureLink | StructureTerminal> | null | undefined {
+    Id<StructureContainer | StructureStorage | Resource | StructureLink | StructureTerminal> | undefined {
     const room = creep.room;
     // 1. Dropped energy within 6 tiles
     const dropped = room.find(FIND_DROPPED_RESOURCES, {
-        filter: r => r.resourceType === RESOURCE_ENERGY && r.amount >= creep.store.getCapacity() / 2
+        filter: r => r.resourceType === RESOURCE_ENERGY && r.amount >= creep.store.getCapacity() / 2 &&
+            creep.pos.getRangeTo(r.pos) < 2
     });
     if (dropped.length > 0) {
         const closest = creep.pos.findClosestByPath(dropped);
@@ -142,8 +151,11 @@ export function findEnergyTarget(creep: Creep):
     }
     // 2. Containers/storage with energy
     const targets: (StructureContainer | StructureStorage | StructureLink | StructureTerminal)[] = [];
-    const structures = room.find(FIND_STRUCTURES);
-    for (const s of structures) {
+    const containers = room.find(FIND_STRUCTURES, {
+        filter: s => whiteListStructures.has(s.structureType)
+    });
+
+    for (const s of containers) {
         if ('store' in s && s.store.getUsedCapacity(RESOURCE_ENERGY) > 50) {
             targets.push(s as any);
         }
