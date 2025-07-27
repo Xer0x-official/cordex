@@ -69,46 +69,49 @@ export class HandleSpawn {
 			});
 		}
 
-		if (this.stats.creepsCount < 1) {
+        if (this.stats.roles.miner < 1) {
 			const initMinerName = `init_miner_${this.room.name}_${this.ticks - 1}`;
-			const initTransporterName = `init_transporter_${this.room.name}_${this.ticks - 1}`;
-
 			const hasInitMiner = this.spawnQueue.some((entry: spawnQueueElement) => entry.name.includes('init'));
-			const hasInitTransporter = this.spawnQueue.some(entry => entry.name.includes('init'));
-
-			if (!hasInitMiner)
-				this.spawnQueue.push({
-					bodyParts: [WORK, MOVE],
+            if (!hasInitMiner) {
+                this.spawnQueue.push({
+                    bodyParts: [WORK, MOVE],
                     name: initMinerName,
                     memory: {
-						job: "miner",
-						working: false,
-						cost: 150,
-						target: null,
-						origin: this.room.name,
+                        job: "miner",
+                        working: false,
+                        cost: 150,
+                        target: null,
+                        origin: this.room.name,
                         amountAssigned: 0,
-						task: '',
-						lastPositions: [] as RoomPosition[],
-						pathToTarget: [] as number[],
-					}
-				});
+                        task: '',
+                        lastPositions: [] as RoomPosition[],
+                        pathToTarget: [] as number[],
+                    }
+                });
+            }
+        }
 
-			if (!hasInitTransporter)
-				this.spawnQueue.push({
-					bodyParts: [CARRY, CARRY, MOVE],
+		if (this.stats.roles.transporter < 1) {
+			const initTransporterName = `init_transporter_${this.room.name}_${this.ticks - 1}`;
+			const hasInitTransporter = this.spawnQueue.some(entry => entry.name.includes('init'));
+
+			if (!hasInitTransporter) {
+                this.spawnQueue.push({
+                    bodyParts: [CARRY, CARRY, MOVE],
                     name: initTransporterName,
                     memory: {
-						job: "transporter",
-						working: false,
-						cost: 150,
-						target: null,
-						origin: this.room.name,
+                        job: "transporter",
+                        working: false,
+                        cost: 150,
+                        target: null,
+                        origin: this.room.name,
                         amountAssigned: 0,
-						task: '',
-						lastPositions: [] as RoomPosition[],
-						pathToTarget: [] as number[],
-					}
-				});
+                        task: '',
+                        lastPositions: [] as RoomPosition[],
+                        pathToTarget: [] as number[],
+                    }
+                });
+            }
 		}
 	}
 
@@ -125,7 +128,10 @@ export class HandleSpawn {
         // immer Spawnbereich freiräumen, bevor gespawnt wird
         this.clearSpawnPad();
 
-        const job = this.spawnQueue[0];
+        const job = this.spawnQueue.sort((a) => {
+            let a1 = a.name.includes('init');
+            return a1 ? -1 : 1;
+        })[0];
         const desiredBody = this.getBodyParts(this.room.energyCapacityAvailable, job.memory?.job);
         const body = (job.bodyParts?.length ?? 0) > 0 ? job.bodyParts! : desiredBody;
 
