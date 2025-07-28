@@ -69,7 +69,6 @@ export function setupMemory(colonie: string) {
 			'looseExtensions': [new RoomPosition(0, 0, colonie)],
 		},
 		stats: {
-			resourceCount: 0,
 			creepsCount: 0,
 			roles: {
 				miner: 0,
@@ -78,6 +77,7 @@ export function setupMemory(colonie: string) {
 				scouter: 0,
 			},
 			totalAvailableEnergy: 0,
+            activeResources: 0,
 		},
 		queues: {
 			spawn: [],

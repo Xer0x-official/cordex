@@ -12,8 +12,9 @@ export class HandleSpawn {
 	stats: IColonieStats;
 	memory: RoomMemory;
 	ticks: number;
+    colony: IColonieMemory;
 
-	constructor(room: Room, name: string, memory: RoomMemory) {
+	constructor(room: Room, name: string, memory: RoomMemory, colony: IColonieMemory) {
 		this.room = room;
 		this.name = name;
 		this.memory = memory;
@@ -21,6 +22,7 @@ export class HandleSpawn {
 		this.spawnQueue = _.cloneDeep(this.room.spawnQueue);
 		this.buildQueue = _.cloneDeep(this.room.buildQueue);
 		this.stats = _.cloneDeep(this.room.stats);
+        this.colony = colony;
 
 		this._run();
 		this._updateMemory();
@@ -162,13 +164,13 @@ export class HandleSpawn {
 
     /** Ermittelt, wie viele Miner fehlen: pro Ressource ein Miner */
     private neededMiners(): number {
-        const desired = this.stats.resourceCount;
+        const desired = this.stats.activeResources;
         return Math.max(0, desired - (this.stats.roles.miner + this.countQueued('miner')));
     }
 
     /** Ermittelt, wie viele Transporter fehlen */
     private neededTransporters(): number {
-        const desired = Math.floor((Memory.transportRequests?.length || this.stats.resourceCount) * Memory.settings.transporterPerSource);
+        const desired = Math.floor((Memory.transportRequests?.length || this.stats.activeResources) * Memory.settings.transporterPerSource);
         return Math.max(0, desired - (this.stats.roles.transporter + this.countQueued('transporter')));
     }
 

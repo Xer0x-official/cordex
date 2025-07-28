@@ -51,7 +51,7 @@ export function loop() {
 	}
 	// run logic for any colonies and for any creeps
 	_.forEach(colonies, (room: Room) => {
-		new RoomLogic(room, room.name);
+		new RoomLogic(room, room.name, Memory.colonies[room.name]);
 		new StructureLogic(room, room.name);
 	});
 

@@ -1,12 +1,11 @@
 
 export function setupProperties(room: Room, remote: boolean, originSpawnPos: RoomPosition) {
 	_.forEach(room.find(FIND_SOURCES), function (source) {
-		room.colonieMemory.resources.energy[source.id] = initResource(originSpawnPos, source);
-		room.stats.resourceCount++;
+		room.colonieMemory.resources.energy[source.id] = initResource(originSpawnPos, source, remote);
 	});
 
 	_.forEach(room.find(FIND_MINERALS), function (source) {
-		room.colonieMemory.resources.minerals[source.id] = initResource(originSpawnPos, source);
+		room.colonieMemory.resources.minerals[source.id] = initResource(originSpawnPos, source, remote);
 	});
 
 	if (!remote) {
@@ -15,7 +14,7 @@ export function setupProperties(room: Room, remote: boolean, originSpawnPos: Roo
 	}
 }
 
-function initResource(originSpawnPos: RoomPosition, source: Source | Mineral): ISourceMemory {
+function initResource(originSpawnPos: RoomPosition, source: Source | Mineral, remote: boolean): ISourceMemory {
     let sourcePath = {
         built: false,
         path: PathFinder.search(originSpawnPos, {pos: source.pos, range: 1}).path
@@ -24,6 +23,7 @@ function initResource(originSpawnPos: RoomPosition, source: Source | Mineral): I
         resourcePath: sourcePath,
         distance: sourcePath.path.length,
         pos: source.pos,
-        miner: null
+        miner: null,
+        active: remote,
     };
 }
