@@ -34,8 +34,9 @@ const ignoreWarnings = ['commonjs-proxy',
     'The \'this\' keyword is equivalent to \'undefined\'',
     'Use of eval is strongly discouraged'];
 
-export default {
-	input: ['src/main.ts'],
+export default [
+    {
+        input: ['src/main.ts'],
 	// input: Object.fromEntries(
 		// glob.sync('src/**/*.ts').map(file => [
 			// This remove `src/` as well as the file extension from each
@@ -49,33 +50,40 @@ export default {
 			// fileURLToPath(new URL(file, import.meta.url))
 		// ])
 	// ),
-	output: {
-		file: 'dist/main.js',
-		format: 'cjs',
-		sourcemap: true,
-		banner: '',
-	},
-	treeshake: false,
+        output: {
+            file: 'dist/main.js',
+            format: 'cjs',
+            sourcemap: true,
+            banner: '',
+        },
 
-	onwarn: function (warning) {
-        // Skip default export warnings from using obfuscated overmind file in main
-        for (let ignoreWarning of ignoreWarnings) {
-            if (warning.toString().includes(ignoreWarning)) {
-                return;
+        treeshake: false,
+
+        onwarn: function (warning) {
+            // Skip default export warnings from using obfuscated overmind file in main
+            for (let ignoreWarning of ignoreWarnings) {
+                if (warning.toString().includes(ignoreWarning)) {
+                    return;
+                }
             }
-        }
-        // console.warn everything else
-        console.warn(warning.message);
-    },
+            // console.warn everything else
+            console.warn(warning.message);
+        },
 
-	plugins: [
-		clear({ targets: ['dist'] }),
-		resolve(),//{ rootDir: "src" }),
-		commonjs(),
-		typescript({
-			tsconfig: './tsconfig.json',
-			include: ['src/**/*.ts'],
-		}),
-		// screeps({ config: cfg, dryRun: cfg === null })
-	]
-};
+        plugins: [
+            clear({ targets: ['dist'] }),
+            resolve(),//{ rootDir: "src" }),
+            commonjs(),
+            typescript({
+                tsconfig: './tsconfig.json',
+                include: ['src/**/*.ts'],
+            }),
+            screeps({ config: cfg, dryRun: cfg === null })
+        ]
+    },
+    {
+        input: 'src/ui/ui.ts',
+        output: { file: 'dist/ui.js', format: 'iife', sourcemap: false },
+        plugins: [typescript()],
+    },
+];

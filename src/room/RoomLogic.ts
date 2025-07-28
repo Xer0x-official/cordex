@@ -32,11 +32,11 @@ export class RoomLogic implements IRoomLogic, IBaseRoomClass {
 			return;
 		}
 
-        if (this.memory.buildingPlan !== undefined) {
-            this.memory.buildingPlan.forEach((build: IPlannedStructure) => {
-                this.visual.structure(build.position.x, build.position.y, build.type, {opacity: 0.5});
-            })
-        }
+        // if (this.memory.buildingPlan !== undefined) {
+        //     this.memory.buildingPlan.forEach((build: IPlannedStructure) => {
+        //         this.visual.structure(build.position.x, build.position.y, build.type, {opacity: 0.5});
+        //     })
+        // }
 
         // if (this.room.buildingMatrix !== undefined) {
         //     for (let y = 0; y < 50; y++) {
@@ -49,9 +49,9 @@ export class RoomLogic implements IRoomLogic, IBaseRoomClass {
         //     }
         // }
 
-		if (this.ticks < 100 || true) {
-			this.room.distanceTransform(true);
-		}
+		// if (this.ticks < 100 || true) {
+		// 	this.room.distanceTransform(true);
+		// }
 
         if (this.ticks % 5 === 0) { // alle 5 Ticks prüfen
             const hostiles = this.room.find(FIND_HOSTILE_CREEPS);

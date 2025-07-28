@@ -18,13 +18,16 @@
 		"allowUnreachableCode": false,
 		"allowUnusedLabels": true,
 		"skipLibCheck": true,
-		"removeComments": true,
+		"removeComments": true
 	},
 	"include": [
-		"src/**/*.ts",
-		"src/declarations/*.d.ts", // Pfade zu deinen TypeScript-Dateien
+	  "src/**/*.ts",
+	  "src/declarations/*.d.ts"
+	  // Pfade zu deinen TypeScript-Dateien
+	  ,
+	  "node_modules_save/typescript/lib/lib.dom.d.ts"
 	],
-	"exclude": [
-		"node_modules",
+  "exclude": [
+		"node_modules"
 	]
 }

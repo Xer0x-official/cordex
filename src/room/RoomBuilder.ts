@@ -212,8 +212,9 @@ export class RoomBuilder implements IBaseRoomClass {
         } else {
             // Später: bei Downgrade‑Gefahr oder Energieüberschuss upgraden
             const downgradeThreshold = CONTROLLER_DOWNGRADE[this.rcl] * 0.5;
-            if (controller.ticksToDowngrade > downgradeThreshold &&
-                this.room.stats.totalAvailableEnergy < this.controllerUpgradeThreshhold) {
+            if ((controller.ticksToDowngrade > downgradeThreshold &&
+                this.room.stats.totalAvailableEnergy > this.controllerUpgradeThreshhold) ||
+                this.room.buildQueue.length > 1) {
                 return; // kein Upgrade nötig
             }
             invest = Math.min(remaining, controller.progressTotal * 0.10);

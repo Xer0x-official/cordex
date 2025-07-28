@@ -172,7 +172,18 @@ export class HandleSpawn {
     private neededWorkers(): { count: number, task: string } {
         for (const project of this.buildQueue) {
             if (project.cost && project.cost > 0) {
-                const required = workersNeededForProject(project, this.room);
+                // Prüfen, ob es sich um ein Controller‑Upgrade handelt
+                const isControllerTask = /controller/i.test(project.name);
+                // Wenn Logistik stark genug ist, nutze die maximal mögliche Anzahl Positionen
+                let required: number;
+                if (isControllerTask) {
+                    const pos = project.structures[0].pos;
+                    required = maxWorkersForTarget(pos, true /* isController */);
+                } else {
+                    // Bei normalen Projekten weiter wie gehabt
+                    required = workersNeededForProject(project, this.room);
+                }
+
                 const assigned = this.countAlive('worker', project.name) + this.countQueued('worker', project.name);
                 const missing = Math.max(0, required - assigned);
                 if (missing > 0) return { count: missing, task: project.name };

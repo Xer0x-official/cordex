@@ -14,7 +14,8 @@
         "watch-main": "rollup -cw --environment DEST:main",
         "watch-pserver": "rollup -cw --environment DEST:pserver",
         "watch-season": "rollup -cw --environment DEST:season",
-        "watch-sim": "rollup -cw --environment DEST:sim"
+        "watch-sim": "rollup -cw --environment DEST:sim",
+        "dev": "rollup -c --environment DEST:pserver && cp dist/* ~/.config/Screeps/scripts/127_0_0_1___21025/default"
     },
     "repository": {
         "type": "git",

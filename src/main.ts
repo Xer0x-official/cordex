@@ -30,6 +30,10 @@ export function loop() {
     if (!Memory.colonies) {
 		Memory.colonies = {};
 	}
+
+    const cpuStart = Game.cpu.getUsed();
+
+    const cpuBeforeRoom = Game.cpu.getUsed();
 	// make a list of all of our rooms
 	let rooms = _.filter(Game.rooms, room => room.controller && room.controller.level > 0 && room.controller.my);
 
@@ -53,13 +57,16 @@ export function loop() {
             TransportManager.collectRequests(actualRoom);
         }
     }
+    const cpuAfterRoom = Game.cpu.getUsed();
 
+    const cpuBeforeCreeps = cpuAfterRoom;
     // freie Transporter einsammeln
     const freeTransporters = _.filter(Game.creeps, c => {
         if (c.spawning) return false;
         return c.memory.job === 'transporter' && (!c.memory.transportTask || c.memory.amountAssigned == 0)
     });
     TransportManager.assignTasks(freeTransporters);
+
 
     const miner: CreepLogic[] = [];
     const transporter: CreepLogic[] = [];
@@ -82,6 +89,8 @@ export function loop() {
     transporter.forEach(creep => creep._run())
     worker.forEach(creep => creep._run())
 
+    const cpuAfterCreeps = Game.cpu.getUsed();
+
 	/* cpuAfterCreep = Game.cpu.getUsed();
 	if (cpuAfterCreep > (cpuAfterRoom * 3)) {
 		log.info(`CPU-AfterCreep: ${cpuAfterRoom} -> ${cpuAfterCreep}`);
@@ -97,6 +106,23 @@ export function loop() {
 	} */
 
 	// log.info(`CPU: ${Game.cpu.getUsed()}`);
+
+    const cpuTotal = cpuAfterCreeps - cpuStart;
+    const cpuRoom  = cpuAfterRoom  - cpuBeforeRoom;
+    const cpuCreeps = cpuAfterCreeps - cpuBeforeCreeps;
+    const x = 1;
+    const fontHeight = 0.3;
+
+    rooms.forEach(room => {
+        const visual = new RoomVisual(room.name);
+        let y = 1;
+
+        visual.text(`CPU Room:  ${cpuRoom.toFixed(2)}`, x, y, {color: 'white', align: 'left', font: fontHeight});
+        y += (fontHeight * 1.2);
+        visual.text(`CPU Creeps: ${cpuCreeps.toFixed(2)}`, x, y, {color: 'white', align: 'left', font: fontHeight});
+        y += (fontHeight * 1.2);
+        visual.text(`CPU Total:  ${cpuTotal.toFixed(2)}`, x, y, {color: 'yellow', align: 'left', font: fontHeight});
+    });
 
 }
 
