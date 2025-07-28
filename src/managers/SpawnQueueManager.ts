@@ -11,16 +11,15 @@ export class SpawnQueueManager {
         for(const sourceId of Object.keys(resources)) {
             const resource = resources[sourceId as Id<Source>];
             const dist = resource.distance; // einfache Distanz
-            if(dist > maxDistance) maxDistance = dist;
+            if(resource.active && dist > maxDistance) maxDistance = dist;
         }
 
         // 2. Sollwerte definieren
         const desired: { [name: string]: number } = {
-            'miner': colony.stats.activeResources,
-            'transporter': Math.min(colony.stats.roles.miner, 1),
+            'miner': Math.max(colony.stats.activeResources, 1),
+            'transporter': Math.max(colony.stats.roles.miner * Memory.settings.transporterPerSource, 1),
             'worker': SpawnQueueManager.neededWorkers(room),
         }
-        if(maxDistance > 20) desired['transporter'] += 1;                         // zusätzlicher Carrier bei weiter Quelle:contentReference[oaicite:16]{index=16}
 
         // 4. Queue-Array vorbereiten
         const newQueue = [];

@@ -24,6 +24,7 @@ function initResource(originSpawnPos: RoomPosition, source: Source | Mineral, re
         distance: sourcePath.path.length,
         pos: source.pos,
         miner: null,
-        active: !remote,
+        // active: !remote,
+        active: true,
     };
 }

@@ -86,6 +86,7 @@ export class RoomLogic implements IRoomLogic, IBaseRoomClass {
 			const spawn = Game.getObjectById(spawnId)!;
 			const freePositions = spawn.pos.getFreePositions(1, false);
 
+            spawn.pos.pushCreepsAway();
 			if (freePositions.length <= 0) {
 				spawn.pos.pushCreepsAway();
 			}
