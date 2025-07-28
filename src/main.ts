@@ -19,7 +19,7 @@ export function loop() {
 		Memory.settings = {};
 		Memory.settings.loggingLevel = LogLevel.Verbose;
 		Memory.settings.user = getUserName();
-		Memory.settings.transporterPerSource = 4;
+		Memory.settings.transporterPerSource = 3;
 		log.debug("Logging Level set to Verbose");
 		log.warning("💎=== Script Loaded ===💎");
 	}

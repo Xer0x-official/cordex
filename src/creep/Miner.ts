@@ -71,7 +71,7 @@ export class Miner implements ICreepClass {
 		let possibleTargetsKeys = Object.keys(possibleTargets);
 
 		_.remove(possibleTargetsKeys, (key: Id<Source>) => {
-			return possibleTargets[key].miner !== null;
+			return possibleTargets[key].miner !== null || !possibleTargets[key].active;
 		});
 
 		if (possibleTargetsKeys.length > 0) {

@@ -38,7 +38,7 @@ export class SpawnQueueManager {
                 let priority = 0;
                 switch(role) {
                     case 'miner':
-                        priority = 100;
+                        priority = SpawnQueueManager.getMinerPriority(colony, resources);
                         if(colony.stats.roles[role] === 0) priority = 300;  // absolut kritisch, keiner vorhanden
                         priorities[role] = (desired[role] - colony.stats.roles[role]) * priority;
                         break;
@@ -98,5 +98,57 @@ export class SpawnQueueManager {
     /** Zählt Creeps einer Rolle in der SpawnQueue */
     private static countQueued(colony: Room, role: string, task?: string): number {
         return colony.spawnQueue.filter(e => e.memory?.job === role && (!task || e.memory.task === task)).length;
+    }
+
+    private static getMinerPriority(colony: IColonieMemory, resources: { [p: Id<Source>]: ISourceMemory }): number {
+        if (colony.stats.roles.miner === 0) {
+            return 300;  // absolut kritisch: kein einziger Miner vorhanden
+        } else {
+            // Alle fehlenden Miner ermitteln (Quellen ohne zugewiesenen Miner)
+            const missingMinerSources = Object.values(resources)
+                .filter(res => !res.miner);  // res.miner ist null => kein Miner aktiv
+
+            if (missingMinerSources.length > 0) {
+                // Prüfen, ob alle fehlenden Miner-Quellen in anderen Räumen liegen
+                const allRemote = missingMinerSources.every(res => {
+                    // Bestimme den Raum der Quelle (per Pfad oder Position)
+                    let sourceRoom = colony.base;
+                    if (res.resourcePath.path && res.resourcePath.path.length > 0) {
+                        const lastPos = res.resourcePath.path[res.resourcePath.path.length - 1];
+                        sourceRoom = lastPos.roomName;
+                    } else if (res.pos) {
+                        sourceRoom = res.pos.roomName;
+                    }
+                    return sourceRoom !== colony.base;  // true, wenn Quelle in anderem Raum
+                });
+
+                if (allRemote) {
+                    // Wenn **alle** ausstehenden Miner für Remote-Quellen sind:
+                    return 60;  // Priorität absenken (Transporter werden ggf. wichtiger)
+                } else {
+                    // Optional: Falls keine Remote-Only-Situation, aber manche Quelle sehr weit weg ist
+                    // (im selben Raum), könnte man hier eine moderate Absenkung erwägen.
+                    const farThreshold = 20;
+                    const anyFarLocal = missingMinerSources.some(res => {
+                        // ähnliche Raum-Bestimmung wie oben
+                        let distance = res.distance;
+                        if (distance === undefined && res.resourcePath.path) {
+                            distance = res.resourcePath.path.length; // evtl. Pfadlänge als Distanz nutzen
+                        }
+                        // Quelle im selben Raum und Distanz > Threshold?
+                        let sameRoom = true;
+                        if (res.resourcePath.path && res.resourcePath.path.length > 0) {
+                            sameRoom = res.resourcePath.path[res.resourcePath.path.length - 1].roomName === colony.base;
+                        }
+                        return sameRoom && distance && distance > farThreshold;
+                    });
+                    if (anyFarLocal) {
+                        // Leichte Absenkung bei sehr weiter entfernter lokaler Quelle
+                        return 80;
+                    }
+                }
+            }
+        }
+        return 100;
     }
 }
