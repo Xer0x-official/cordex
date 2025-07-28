@@ -16,8 +16,8 @@ export class SpawnQueueManager {
 
         // 2. Sollwerte definieren
         const desired: { [name: string]: number } = {
-            'miner': Object.keys(resources).length,
-            'transporter': Object.keys(resources).length,
+            'miner': colony.stats.activeResources,
+            'transporter': Math.min(colony.stats.roles.miner, 1),
             'worker': SpawnQueueManager.neededWorkers(room),
         }
         if(maxDistance > 20) desired['transporter'] += 1;                         // zusätzlicher Carrier bei weiter Quelle:contentReference[oaicite:16]{index=16}
