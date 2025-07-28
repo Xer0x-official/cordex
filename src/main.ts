@@ -8,7 +8,7 @@ import { LogLevel } from "./enums/loglevel";
 // import './prototypes/room/setup';
 import './prototypes/creep';
 import './prototypes/room';
-import { TransportManager } from "logistics/TransportManager";
+import { TransportManager } from "managers/TransportManager";
 const roomSetupOffset = Game.time + 3;
 
 log.alert("✨=== Global Reset ===✨");

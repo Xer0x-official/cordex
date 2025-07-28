@@ -1,4 +1,4 @@
-// src/logistics/TransportManager.ts
+// src/managers/TransportManager.ts
 import UUID from "pure-uuid";
 import { max } from "lodash";
 

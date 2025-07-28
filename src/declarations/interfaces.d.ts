@@ -4,11 +4,18 @@ interface IDroppedResourceMemory {
 	minerals: {[name: Id<Mineral>]: {pos: RoomPosition, transporterCount: number}},
 }
 
+interface ISourceMemory {
+    pos: RoomPosition,
+    miner: Id<Creep> | null,
+    resourcePath: IColoniePath,
+    distance: number
+}
+
 interface IResourceMemory {
 	[name: string]: any;
-	energy: {[name: Id<Source>]: { pos: RoomPosition, miner: Id<Creep> | null }},
-	minerals: {[name: Id<Mineral>]: { pos: RoomPosition, miner: Id<Creep> | null}},
-	dropped: IDroppedResourceMemory;
+	energy: {[name: Id<Source>]: ISourceMemory },
+	minerals: {[name: Id<Mineral>]: ISourceMemory },
+	dropped: IDroppedResourceMemory
 }
 
 interface IColonieStatsRoles {

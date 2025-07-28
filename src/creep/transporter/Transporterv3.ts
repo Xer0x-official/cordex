@@ -1,4 +1,4 @@
-import { TransportManager } from "logistics/TransportManager";
+import { TransportManager } from "managers/TransportManager";
 
 enum State {
 	Start,

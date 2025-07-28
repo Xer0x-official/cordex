@@ -48,6 +48,11 @@ export function setupMemory(colonie: string) {
 		resources: {
 			energy: {},
 			minerals: {},
+            resourcePath: {
+                built: false,
+                path: []
+            },
+            distance: -1,
 			dropped: {
 				energy: {},
 				minerals: {},

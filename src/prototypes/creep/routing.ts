@@ -19,7 +19,7 @@ Creep.prototype.hasReachedDestination = function hasReachedDestination(target) {
 	return false;
 }
 
-Creep.prototype.moveToTarget = function moveToTarget(err, target) {
+Creep.prototype.moveToTarget = function moveToTarget(err: number, target) {
 	if (!this.memory.routing || this.memory.routing === null) {
 		this.memory.routing = {};
 	}
@@ -31,8 +31,6 @@ Creep.prototype.moveToTarget = function moveToTarget(err, target) {
 	if (!this.memory.routing.lastRoom || this.memory.routing.lastRoom === null) {
 		this.memory.routing = { lastRoom: this.room.name };
 	}
-
-
 
 	if (err === OK || err !== ERR_NOT_IN_RANGE) {
 		this.memory.routing.lastPositions = [];
@@ -62,6 +60,24 @@ Creep.prototype.moveToTarget = function moveToTarget(err, target) {
 			this.memory.routing.pathToTarget = null;
 		}
 	} */
+
+    if (this.isStuck()) {
+        // Prüfen, ob der Blockierer der gleiche Job und dasselbe Ziel hat
+        const blockingCreep: Creep = this.pos.findInRange(FIND_MY_CREEPS, 1).find((c: Creep) =>
+            c.memory.job === this.memory.job &&
+            c.memory.target === this.memory.target &&
+            c.memory.amountAssigned > 0 &&
+            c.store.getUsedCapacity() > 0 // er ist voll, will also noch abliefern
+        );
+        if (blockingCreep) {
+            // Statt neu zu routen: warten und evtl. Energie an ihn übergeben
+            if (this.memory.job === 'transporter') {
+                // Übergabe-Logik aus deinem Transporter V4 wiederverwenden
+                if (this.attemptTransferToTransporter()) return OK;
+            }
+            return ERR_BUSY; // bewusst nichts tun
+        }
+    }
 
 	if (!this.isStuck()) {
 		try {

@@ -1,4 +1,4 @@
-import { TransportManager } from "logistics/TransportManager";
+import { TransportManager } from "managers/TransportManager";
 
 enum State {
 	Start,
@@ -383,7 +383,7 @@ export class Transporter implements ICreepClass {
 					let transferTarget = Game.getObjectById(this.memory.target);
 
 					if (transferTarget !== null) {
-						this.creep.travelTo(transferTarget, { ignoreCreeps: false, preferHighway: true, range: 1 });
+						this.creep.moveToTarget(this.creep.moveTo(transferTarget), transferTarget);
 					}
 				}
 				break;
@@ -394,7 +394,7 @@ export class Transporter implements ICreepClass {
 					let energyTarget = Game.getObjectById(this.memory.energyTarget);
 
 					if (energyTarget !== null) {
-						this.creep.travelTo(energyTarget, { ignoreCreeps: false, preferHighway: true, range: 1 });
+						this.creep.moveToTarget(this.creep.moveTo(energyTarget), energyTarget);
 					}
 				}
 				break;
