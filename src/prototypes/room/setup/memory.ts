@@ -85,5 +85,6 @@ export function setupMemory(colonie: string) {
 			repair: [],
 		},
 		paths: {},
+        priorities: {},
 	}
 }

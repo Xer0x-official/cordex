@@ -9,6 +9,7 @@ import { LogLevel } from "./enums/loglevel";
 import './prototypes/creep';
 import './prototypes/room';
 import { TransportManager } from "managers/TransportManager";
+import { SpawnQueueManager } from "managers/SpawnQueueManager";
 const roomSetupOffset = Game.time + 3;
 
 log.alert("✨=== Global Reset ===✨");
@@ -34,18 +35,35 @@ export function loop() {
     const cpuStart = Game.cpu.getUsed();
 
     const cpuBeforeRoom = Game.cpu.getUsed();
-	// make a list of all of our rooms
-	let rooms = _.filter(Game.rooms, room => room.controller && room.controller.level > 0 && room.controller.my);
+	// make a list of all of our colonies
+	let colonies = Object.keys(Memory.colonies)
+        .flatMap(roomName => {
+            const r = Game.rooms[roomName];
+            return r ? [r] : [];
+        });
+
+    if (colonies.length < 1) {
+        colonies = colonies.concat(_.filter(Game.rooms, room => room.controller && room.controller.level > 0 && room.controller.my));
+    }
 
 	if (Game.time < roomSetupOffset) {
 		return;
 	}
-	// run logic for any rooms and for any creeps
-	_.forEach(rooms, (room: Room) => {
+	// run logic for any colonies and for any creeps
+	_.forEach(colonies, (room: Room) => {
 		new RoomLogic(room, room.name);
 		new StructureLogic(room, room.name);
 	});
 
+    if (Game.time % 10 === 0 && Object.keys(Memory.colonies).length > 0) {
+        Object.keys(Memory.colonies)
+            .flatMap(roomName => {
+                const r = Game.rooms[roomName];
+                return r ? [r] : [];
+            }).forEach(room => {
+            SpawnQueueManager.recalculateSpawnPriorities(room);
+        });
+    }
 	/* cpuAfterRoom = Game.cpu.getUsed();
 	if (cpuAfterRoom > (cpuBeforeRoom * 1.5)) {
 		console.log(`CPU-AfterRoom: ${cpuBeforeRoom} -> ${cpuAfterRoom}`);
@@ -113,7 +131,7 @@ export function loop() {
     const x = 1;
     const fontHeight = 0.3;
 
-    rooms.forEach(room => {
+    colonies.forEach(room => {
         const visual = new RoomVisual(room.name);
         let y = 1;
 
@@ -122,6 +140,14 @@ export function loop() {
         visual.text(`CPU Creeps: ${cpuCreeps.toFixed(2)}`, x, y, {color: 'white', align: 'left', font: fontHeight});
         y += (fontHeight * 1.2);
         visual.text(`CPU Total:  ${cpuTotal.toFixed(2)}`, x, y, {color: 'yellow', align: 'left', font: fontHeight});
+        y += (fontHeight * 1.2);
+
+        let priorities = Memory.colonies[room.name]!.priorities;
+        visual.text(`miner prio: ${priorities['miner']}`, x, y, {color: 'green', align: 'left', font: fontHeight});
+        y += (fontHeight * 1.2);
+        visual.text(`transporter prio: ${priorities['transporter']}`, x, y, {color: 'green', align: 'left', font: fontHeight});
+        y += (fontHeight * 1.2);
+        visual.text(`worker prio: ${priorities['worker']}`, x, y, {color: 'green', align: 'left', font: fontHeight});
     });
 
 }

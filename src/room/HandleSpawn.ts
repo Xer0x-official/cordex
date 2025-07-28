@@ -119,6 +119,10 @@ export class HandleSpawn {
     private clearSpawnPad(): void {
         const free = this.spawn.pos.getFreePositions(1, false).length;
         if (free < 1) this.spawn.pos.pushCreepsAway();
+
+        if (free > 0) {
+            this.spawn
+        }
     }
 
     /** Erstellt ein Creep aus der Queue und sorgt danach für Platz */

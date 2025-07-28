@@ -38,43 +38,62 @@ RoomPosition.prototype.getNearbyPositions = function (range: number = 1) {
 	return positions;
 }
 
-RoomPosition.prototype.getFreePositions = function (range: number = 1, ignoreCreeps: boolean = true) {
-	let positions: RoomPosition[] = this.getNearbyPositions(range);
-	const terrain = Game.map.getRoomTerrain(this.roomName);
+// RoomPosition.prototype.getFreePositions = function (range: number = 1, ignoreCreeps: boolean = true) : RoomPosition[] {
+// 	let positions: RoomPosition[] = this.getNearbyPositions(range);
+// 	const terrain = Game.map.getRoomTerrain(this.roomName);
+//
+// 	positions = _.remove(positions, (position: RoomPosition) => {
+// 		return terrain.get(position.x, position.y) !== TERRAIN_MASK_WALL;
+// 	});
+//
+// 	positions = _.remove(positions, (position: RoomPosition) => {
+// 		let structuresAtPosition = 0;
+// 		let creepsAtPosition = 0;
+// 		structuresAtPosition = _.remove(position.lookFor(LOOK_STRUCTURES), (structure: Structure) => {
+// 			return !structure.isWalkable();
+// 		}).length;
+//
+// 		if (!ignoreCreeps) {
+// 			creepsAtPosition = position.lookFor(LOOK_CREEPS).length;
+// 		}
+//
+// 		return structuresAtPosition < 1 && creepsAtPosition < 1;
+// 	});
+//
+// 	return positions;
+// }
 
-	positions = _.remove(positions, (position: RoomPosition) => {
-		return terrain.get(position.x, position.y) !== TERRAIN_MASK_WALL;
-	});
+RoomPosition.prototype.getFreePositions = function(range: number = 1, ignoreCreeps: boolean = true): RoomPosition[] {
+    let positions = this.getNearbyPositions(range);
+    const terrain = Game.map.getRoomTerrain(this.roomName);
 
-	positions = _.remove(positions, (position: RoomPosition) => {
-		let structuresAtPosition = 0;
-		let creepsAtPosition = 0;
-		structuresAtPosition = _.remove(position.lookFor(LOOK_STRUCTURES), (structure: Structure) => {
-			return !structure.isWalkable();
-		}).length;
+    positions = positions.filter((pos: RoomPosition) => terrain.get(pos.x, pos.y) !== TERRAIN_MASK_WALL);
 
-		if (!ignoreCreeps) {
-			creepsAtPosition = position.lookFor(LOOK_CREEPS).length;
-		}
+    positions = positions.filter((pos: RoomPosition) => {
+        const structures = pos.lookFor(LOOK_STRUCTURES)
+            .filter((s: Structure) => !s.isWalkable());
+        const creeps = (!ignoreCreeps) ? pos.lookFor(LOOK_CREEPS).length : 0;
+        return structures.length === 0 && creeps === 0;
+    });
 
-		return structuresAtPosition <= 0 && creepsAtPosition <= 0;
-	});
-
-	return positions;
-}
+    return positions;
+};
 
 RoomPosition.prototype.pushCreepsAway = function() {
 	const spaceAround: RoomPosition[] = this.getNearbyPositions();
 	let creepAtPosition;
-	let freeCreepPosition;
+	let freeCreepPosition: RoomPosition[];
 
 	spaceAround.forEach((position: RoomPosition) => {
 		creepAtPosition = Game.rooms[this.roomName].lookForAt(LOOK_CREEPS, position);
 
 		if (creepAtPosition.length > 0 && creepAtPosition[0].getJob() != 'miner') {
-			freeCreepPosition = creepAtPosition[0].pos.getFreePositions();
-			creepAtPosition[0].travelTo(freeCreepPosition[0]);
-			// console.log(`tried to push ${creepAtPosition[0].name} to ${freeCreepPosition[0]}`);
+			freeCreepPosition = creepAtPosition[0].pos.getFreePositions(1, false)!;
+            if (freeCreepPosition.length > 0) {
+                let directionTo = freeCreepPosition[0].getDirectionTo(creepAtPosition[0].pos);
+                creepAtPosition[0].move(directionTo);
+                // console.log(`tried to push ${creepAtPosition[0].name} to ${freeCreepPosition[0]}`);
+            }
 		}
 	})
 }

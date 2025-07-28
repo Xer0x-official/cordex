@@ -67,6 +67,7 @@ interface IColonieMemory {
 	stats: IColonieStats,
 	queues: IColonieQueues,
 	paths: { [name: string]: IColoniePath },
+    priorities: { [name: string]: number },
 }
 
 interface PathfinderReturn {
