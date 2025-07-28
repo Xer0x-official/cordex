@@ -7,13 +7,15 @@ export class RoomLogic implements IRoomLogic, IBaseRoomClass {
 	ticks: number;
 	memory: RoomMemory;
     visual: RoomVisual;
+    colony: IColonieMemory | null;
 
-	constructor(room: Room, name: string) {
+	constructor(room: Room, name: string, colony: IColonieMemory | null) {
 		this.room = room;
 		this.name = name;
 		this.memory = _.cloneDeep(this.room.memory);
 		this.ticks = Game.time;
         this.visual = new RoomVisual(room.name);
+        this.colony = colony;
 
 		this._run();
 		this._updateMemory();
@@ -91,7 +93,7 @@ export class RoomLogic implements IRoomLogic, IBaseRoomClass {
 
 		 // Setup room if it hasn't been set up yet
 		if (this.ticks % 5 === 0) {
-			new HandleSpawn(this.room, this.name, this.memory);
+			new HandleSpawn(this.room, this.name, this.memory, this.colony!);
 		}
 
 		if (this.ticks % 50 === 0) {
@@ -124,6 +126,9 @@ export class RoomLogic implements IRoomLogic, IBaseRoomClass {
 			creepsCount: 0,
 			roles: roles,
 			totalAvailableEnergy: this.getTotalAvailableEnergy(),
+            activeResources: Object.keys(this.colony!.resources.energy).filter(resource => {
+                return this.colony!.resources.energy[resource as Id<Source>].active;
+            }).length,
 		}
 
 		for (const key in this.room.colonieMemory.resources.dropped.energy) {

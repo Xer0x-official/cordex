@@ -51,7 +51,7 @@ export function loop() {
 	}
 	// run logic for any colonies and for any creeps
 	_.forEach(colonies, (room: Room) => {
-		new RoomLogic(room, room.name);
+		new RoomLogic(room, room.name, Memory.colonies[room.name]);
 		new StructureLogic(room, room.name);
 	});
 
@@ -148,6 +148,10 @@ export function loop() {
         visual.text(`transporter prio: ${priorities['transporter']}`, x, y, {color: 'green', align: 'left', font: fontHeight});
         y += (fontHeight * 1.2);
         visual.text(`worker prio: ${priorities['worker']}`, x, y, {color: 'green', align: 'left', font: fontHeight});
+
+        y += (fontHeight * 1.2);
+        visual.text(`activeRessources: ${Memory.colonies[room.name].stats.activeResources}`, x, y, {color: 'red', align: 'left', font: fontHeight});
+
     });
 
 }

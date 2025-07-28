@@ -8,7 +8,8 @@ interface ISourceMemory {
     pos: RoomPosition,
     miner: Id<Creep> | null,
     resourcePath: IColoniePath,
-    distance: number
+    distance: number,
+    active: boolean,
 }
 
 interface IResourceMemory {
@@ -28,10 +29,10 @@ interface IColonieStatsRoles {
 
 interface IColonieStats {
 	[name: string]: any;
-	resourceCount: number,
 	creepsCount: number,
 	roles: IColonieStatsRoles,
 	totalAvailableEnergy: number,
+    activeResources: number,
 }
 
 interface IBaseExtensions {
